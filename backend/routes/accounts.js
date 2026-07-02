@@ -1,36 +1,45 @@
 const router = require('express').Router();
-const pool = require('../config/db');
-const auth = require('../middleware/auth');
+const pool   = require('../config/db');
+const auth   = require('../middleware/auth');
 
 router.get('/', auth, async (req, res) => {
-  const { search = '', type = '' } = req.query;
+  const { search = '' } = req.query;
   try {
-    let where = ['1=1']; let params = []; let i = 1;
-    if (search) { where.push(`(a.name ILIKE $${i} OR a.mobile ILIKE $${i})`); params.push(`%${search}%`); i++; }
-    if (type) { where.push(`a.party_type = $${i}`); params.push(type); i++; }
-    const result = await pool.query(`SELECT a.*, ag.name AS group_name FROM accounts a LEFT JOIN account_groups ag ON a.group_id=ag.id WHERE ${where.join(' AND ')} ORDER BY a.name`, params);
+    let where = ['1=1'], params = [], i = 1;
+    if (search) { where.push(`(a.account_name ILIKE $${i} OR a.mobile_no ILIKE $${i})`); params.push(`%${search}%`); i++; }
+    const result = await pool.query(
+      `SELECT a.id,a.account_name,a.mobile_no,a.email,a.permanent_address,a.opening_balance,a.credit_debit,a.remark,a.status_flag FROM accounts a WHERE ${where.join(' AND ')} ORDER BY a.account_name`,
+      params
+    );
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.post('/', auth, async (req, res) => {
   try {
-    const { name, mobile, email, address, party_type, group_id, gst_no } = req.body;
-    const result = await pool.query(`
-      INSERT INTO accounts (name,mobile,email,address,party_type,group_id,gst_no,entered_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *
-    `, [name, mobile, email, address, party_type, group_id, gst_no, req.user.id]);
+    const { account_name, mobile_no, email, permanent_address, opening_balance, credit_debit, remark } = req.body;
+    const result = await pool.query(
+      `INSERT INTO accounts(account_name,mobile_no,email,permanent_address,opening_balance,credit_debit,remark,status_flag,entered_by) VALUES($1,$2,$3,$4,$5,$6,$7,true,$8) RETURNING *`,
+      [account_name, mobile_no||'', email||'', permanent_address||'', opening_balance||0, credit_debit||'Dr', remark||'', req.user.id]
+    );
     res.status(201).json(result.rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { name, mobile, email, address, gst_no } = req.body;
-    const result = await pool.query(`UPDATE accounts SET name=$1,mobile=$2,email=$3,address=$4,gst_no=$5,updated_by=$6,updated_at=NOW() WHERE id=$7 RETURNING *`,
-      [name, mobile, email, address, gst_no, req.user.id, req.params.id]);
+    const { account_name, mobile_no, email, permanent_address, opening_balance, credit_debit, remark, status_flag } = req.body;
+    const result = await pool.query(
+      `UPDATE accounts SET account_name=$1,mobile_no=$2,email=$3,permanent_address=$4,opening_balance=$5,credit_debit=$6,remark=$7,status_flag=$8 WHERE id=$9 RETURNING *`,
+      [account_name, mobile_no||'', email||'', permanent_address||'', opening_balance||0, credit_debit||'Dr', remark||'', status_flag!==false, req.params.id]
+    );
     res.json(result.rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/:id', auth, async (req,res)=>{
+  try { await pool.query('DELETE FROM accounts WHERE id=$1',[req.params.id]); res.json({success:true}); }
+  catch(err){res.status(500).json({error:err.message});}
 });
 
 module.exports = router;

@@ -5,9 +5,20 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import OutdoorOrders from './pages/outdoor/OutdoorOrders';
 import OutdoorOrderForm from './pages/outdoor/OutdoorOrderForm';
+import StudioOrders from './pages/studio/StudioOrders';
+import StudioOrderForm from './pages/studio/StudioOrderForm';
+import Quotations from './pages/quotations/Quotations';
 import Sales from './pages/finance/Sales';
+import Purchases from './pages/finance/Purchases';
+import Payments from './pages/finance/Payments';
+import Accounts from './pages/finance/Accounts';
 import Receipts from './pages/finance/Receipts';
+import DesignJobs from './pages/production/DesignJobs';
+import Exposing from './pages/production/Exposing';
+import HireOrders from './pages/production/HireOrders';
 import Employees from './pages/hr/Employees';
+import Attendance from './pages/hr/Attendance';
+import Payroll from './pages/hr/Payroll';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import StubPage from './pages/StubPage';
@@ -33,31 +44,32 @@ export default function App() {
             <Route path="outdoor-orders/:id" element={<OutdoorOrderForm />} />
 
             {/* Studio Orders */}
-            <Route path="studio-orders" element={<StubPage title="Studio Orders" />} />
-            <Route path="studio-orders/new" element={<StubPage title="New Studio Order" />} />
+            <Route path="studio-orders" element={<StudioOrders />} />
+            <Route path="studio-orders/new" element={<StudioOrderForm />} />
+            <Route path="studio-orders/:id" element={<StudioOrderForm />} />
 
             {/* Quotations & Bookings */}
-            <Route path="quotations" element={<StubPage title="Quotations" />} />
+            <Route path="quotations" element={<Quotations />} />
             <Route path="bookings" element={<StubPage title="Bookings" />} />
 
             {/* Finance */}
             <Route path="sales" element={<Sales />} />
             <Route path="sales/new" element={<StubPage title="New Sale Invoice" />} />
             <Route path="sales/:id" element={<StubPage title="Sale Detail" />} />
-            <Route path="purchases" element={<StubPage title="Purchases" />} />
+            <Route path="purchases" element={<Purchases />} />
             <Route path="receipts" element={<Receipts />} />
-            <Route path="payments" element={<StubPage title="Payments" />} />
-            <Route path="accounts" element={<StubPage title="Accounts" />} />
+            <Route path="payments" element={<Payments />} />
+            <Route path="accounts" element={<Accounts />} />
 
             {/* Production */}
-            <Route path="design-jobs" element={<StubPage title="Design Jobs" />} />
-            <Route path="exposing" element={<StubPage title="Exposing / Printing" />} />
-            <Route path="hire-orders" element={<StubPage title="Hire Orders" />} />
+            <Route path="design-jobs" element={<DesignJobs />} />
+            <Route path="exposing" element={<Exposing />} />
+            <Route path="hire-orders" element={<HireOrders />} />
 
             {/* HR */}
             <Route path="employees" element={<Employees />} />
-            <Route path="attendance" element={<StubPage title="Attendance" />} />
-            <Route path="payroll" element={<StubPage title="Payroll" />} />
+            <Route path="attendance" element={<Attendance />} />
+            <Route path="payroll" element={<Payroll />} />
 
             {/* Reports & Settings */}
             <Route path="reports" element={<Reports />} />

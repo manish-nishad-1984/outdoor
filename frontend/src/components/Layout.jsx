@@ -1,6 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { useAuth } from '../context/AuthContext';
 
 const titles = {
   '/': 'Dashboard',
@@ -24,11 +23,9 @@ const titles = {
 };
 
 export default function Layout() {
-  const { user } = useAuth();
   const location = useLocation();
   const base = '/' + location.pathname.split('/')[1];
   const title = titles[base] || 'OutdoorStudio';
-  const initials = user?.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
 
   return (
     <div className="layout">
@@ -36,19 +33,7 @@ export default function Layout() {
       <div className="main">
         <header className="topbar">
           <div className="topbar-left">
-            <div>
-              <div className="page-title">{title}</div>
-              <div className="breadcrumb">Home / {title}</div>
-            </div>
-          </div>
-          <div className="topbar-right">
-            <div className="user-chip">
-              <div className="user-avatar">{initials}</div>
-              <div>
-                <div className="user-name">{user?.name}</div>
-                <div className="user-role">{user?.role}</div>
-              </div>
-            </div>
+            <div className="page-title">{title}</div>
           </div>
         </header>
         <div className="content">
