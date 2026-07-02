@@ -4,4 +4,3 @@ dist/
 *.log
 migration/uploads/
 migration/migration.log
-public/
