@@ -8,7 +8,7 @@ router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     const result = await pool.query(
-      'SELECT * FROM app_users WHERE username = $1 AND is_active = true',
+      'SELECT * FROM app_users WHERE username = $1',
       [username]
     );
     if (!result.rows.length)
@@ -27,7 +27,7 @@ router.post('/login', async (req, res) => {
 
     res.json({
       token,
-      user: { id: user.id, username: user.username, name: user.full_name, role: user.user_type }
+      user: { id: user.id, username: user.username, name: user.username, role: user.user_type }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -38,7 +38,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', require('../middleware/auth'), async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, full_name, user_type FROM app_users WHERE id = $1',
+      'SELECT id, username, user_type FROM app_users WHERE id = $1',
       [req.user.id]
     );
     res.json(result.rows[0]);
