@@ -6,10 +6,10 @@ const auth = require('../middleware/auth');
 router.get('/dashboard', auth, async (req, res) => {
   try {
     const [orders, sales, receipts, pending] = await Promise.all([
-      pool.query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE status='in_progress') AS in_progress, COUNT(*) FILTER (WHERE status='delivered') AS delivered FROM outdoor_orders WHERE DATE_TRUNC('month',order_date)=DATE_TRUNC('month',NOW())`),
-      pool.query(`SELECT COALESCE(SUM(net_amount),0) AS total FROM sales WHERE DATE_TRUNC('month',sale_date)=DATE_TRUNC('month',NOW())`),
-      pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM receipts WHERE DATE_TRUNC('month',receipt_date)=DATE_TRUNC('month',NOW())`),
-      pool.query(`SELECT COALESCE(SUM(net_amount - COALESCE(advance,0)),0) AS total FROM outdoor_orders WHERE status != 'delivered'`),
+      pool.query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE has_data=true) AS in_progress, 0 AS delivered FROM outdoor_orders WHERE DATE_TRUNC('month',inquiry_date)=DATE_TRUNC('month',NOW())`),
+      pool.query(`SELECT COALESCE(SUM(gross_total),0) AS total FROM sales WHERE DATE_TRUNC('month',inquiry_date)=DATE_TRUNC('month',NOW())`),
+      pool.query(`SELECT COALESCE(SUM(amount),0) AS total FROM receipts WHERE DATE_TRUNC('month',inquiry_date)=DATE_TRUNC('month',NOW())`),
+      pool.query(`SELECT COALESCE(SUM(total_pending),0) AS total FROM outdoor_orders`),
     ]);
     res.json({
       orders: orders.rows[0],
