@@ -21,6 +21,7 @@ import Attendance from './pages/hr/Attendance';
 import Payroll from './pages/hr/Payroll';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import Bookings from './pages/bookings/Bookings';
 import StubPage from './pages/StubPage';
 
 function PrivateRoute({ children }) {
@@ -50,7 +51,7 @@ export default function App() {
 
             {/* Quotations & Bookings */}
             <Route path="quotations" element={<Quotations />} />
-            <Route path="bookings" element={<StubPage title="Bookings" />} />
+            <Route path="bookings" element={<Bookings />} />
 
             {/* Finance */}
             <Route path="sales" element={<Sales />} />

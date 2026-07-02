@@ -23,6 +23,22 @@ router.get('/', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.post('/', auth, async (req, res) => {
+  try {
+    const { voucher_no, amount, payment_type, payment_date, cheque_no, remark } = req.body;
+    let vno = voucher_no;
+    if (!vno) {
+      const cnt = await pool.query('SELECT COUNT(*) FROM receipts');
+      vno = `RCP-${String(parseInt(cnt.rows[0].count)+1).padStart(4,'0')}`;
+    }
+    const r = await pool.query(
+      `INSERT INTO receipts(voucher_no,amount,payment_type,payment_date,cheque_no,remark,inquiry_date) VALUES($1,$2,$3,$4,$5,$6,$4) RETURNING *`,
+      [vno, amount, payment_type||'Cash', payment_date, cheque_no||null, remark||'']
+    );
+    res.status(201).json(r.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.delete('/:id', auth, async (req, res) => {
   try {
     await pool.query('DELETE FROM receipts WHERE id=$1', [req.params.id]);
