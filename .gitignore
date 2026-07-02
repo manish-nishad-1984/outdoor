@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+*.log
+migration/uploads/
+migration/migration.log
+public/
