@@ -22,6 +22,7 @@ import Payroll from './pages/hr/Payroll';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Bookings from './pages/bookings/Bookings';
+import SaleForm from './pages/finance/SaleForm';
 import StubPage from './pages/StubPage';
 
 function PrivateRoute({ children }) {
@@ -55,8 +56,8 @@ export default function App() {
 
             {/* Finance */}
             <Route path="sales" element={<Sales />} />
-            <Route path="sales/new" element={<StubPage title="New Sale Invoice" />} />
-            <Route path="sales/:id" element={<StubPage title="Sale Detail" />} />
+            <Route path="sales/new" element={<SaleForm />} />
+            <Route path="sales/:id" element={<SaleForm />} />
             <Route path="purchases" element={<Purchases />} />
             <Route path="receipts" element={<Receipts />} />
             <Route path="payments" element={<Payments />} />

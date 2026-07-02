@@ -25,6 +25,7 @@ app.use('/api/exposing',        require('./routes/exposing'));
 app.use('/api/hire-orders',     require('./routes/hireOrders'));
 app.use('/api/attendance',      require('./routes/attendance'));
 app.use('/api/bookings',        require('./routes/bookings'));
+app.use('/api/payroll',         require('./routes/payroll'));
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 
