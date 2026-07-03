@@ -12,6 +12,7 @@ import QuotationForm from './pages/quotations/QuotationForm';
 import Sales from './pages/finance/Sales';
 import Purchases from './pages/finance/Purchases';
 import Payments from './pages/finance/Payments';
+import OutdoorPayment from './pages/finance/OutdoorPayment';
 import Accounts from './pages/finance/Accounts';
 import Receipts from './pages/finance/Receipts';
 import DesignJobs from './pages/production/DesignJobs';
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="purchases" element={<Purchases />} />
             <Route path="receipts" element={<Receipts />} />
             <Route path="payments" element={<Payments />} />
+            <Route path="outdoor-payments" element={<OutdoorPayment />} />
             <Route path="accounts" element={<Accounts />} />
 
             {/* Production */}

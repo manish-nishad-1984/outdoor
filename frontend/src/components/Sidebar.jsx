@@ -26,6 +26,7 @@ const NAV = [
       { to: '/purchases', label: 'Purchases',         icon: Package },
       { to: '/receipts',  label: 'Receipts',          icon: Receipt },
       { to: '/payments',  label: 'Payments',          icon: CreditCard },
+      { to: '/outdoor-payments', label: 'Outdoor Party Payment', icon: CreditCard },
       { to: '/accounts',  label: 'Accounts',          icon: BookOpen },
     ]
   },

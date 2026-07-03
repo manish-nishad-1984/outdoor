@@ -21,6 +21,7 @@ app.use('/api/reports',         require('./routes/reports'));
 app.use('/api/quotations',      require('./routes/quotations'));
 app.use('/api/purchases',       require('./routes/purchases'));
 app.use('/api/payments',        require('./routes/payments'));
+app.use('/api/outdoor-payments',require('./routes/outdoorPayments'));
 app.use('/api/design-jobs',     require('./routes/designJobs'));
 app.use('/api/exposing',        require('./routes/exposing'));
 app.use('/api/hire-orders',     require('./routes/hireOrders'));
