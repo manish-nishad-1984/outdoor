@@ -23,6 +23,7 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Bookings from './pages/bookings/Bookings';
 import SaleForm from './pages/finance/SaleForm';
+import ItemMaster from './pages/masters/ItemMaster';
 import StubPage from './pages/StubPage';
 
 function PrivateRoute({ children }) {
@@ -74,6 +75,8 @@ export default function App() {
             <Route path="payroll" element={<Payroll />} />
 
             {/* Reports & Settings */}
+            <Route path="items" element={<ItemMaster />} />
+
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
 

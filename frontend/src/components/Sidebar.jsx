@@ -45,6 +45,13 @@ const NAV = [
       { to: '/payroll',    label: 'Payroll',    icon: Wallet },
     ]
   },
+  {
+    label: 'Masters', icon: Package,
+    children: [
+      { to: '/items', label: 'Item Master', icon: Package },
+      { to: '/accounts', label: 'Account Master', icon: BookOpen },
+    ]
+  },
   { label: 'Reports',  to: '/reports',  icon: BarChart2 },
   { label: 'Settings', to: '/settings', icon: Settings },
 ];

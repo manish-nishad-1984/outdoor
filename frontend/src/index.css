@@ -342,6 +342,13 @@ tbody tr:hover td { background: #f9fafb; }
 .form-select { height: 36px; padding: 0 11px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; background: #fff; color: #111827; outline: none; }
 .form-actions { grid-column: 1/-1; display: flex; gap: 8px; padding-top: 4px; }
 
+/* Checkbox grid (Item Master flags) */
+.checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin-top: 16px; }
+.checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #374151; cursor: pointer; user-select: none; }
+.checkbox-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: #2563eb; cursor: pointer; }
+.flag-yes { color: #16a34a; vertical-align: middle; }
+.flag-no  { color: #d1d5db; }
+
 /* ═══════════════════════════════════════════
    PAGE COLS
 ═══════════════════════════════════════════ */

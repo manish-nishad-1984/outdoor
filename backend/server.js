@@ -15,6 +15,7 @@ app.use('/api/sales',           require('./routes/sales'));
 app.use('/api/receipts',        require('./routes/receipts'));
 app.use('/api/accounts',        require('./routes/accounts'));
 app.use('/api/accounts-master', require('./routes/accountsMaster'));
+app.use('/api/items',           require('./routes/items'));
 app.use('/api/employees',       require('./routes/employees'));
 app.use('/api/reports',         require('./routes/reports'));
 app.use('/api/quotations',      require('./routes/quotations'));
