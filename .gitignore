@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .env
+DEPLOY.md
 *.log
 migration/uploads/
 migration/migration.log

@@ -2,7 +2,9 @@ const router = require('express').Router();
 const pool   = require('../config/db');
 const auth   = require('../middleware/auth');
 
-// Create table on first load if it doesn't exist (mirrors client's Item Master)
+// Create table on first load if it doesn't exist (mirrors client's Item Master).
+// ALTER statements patch pre-existing `items` tables that were created with an
+// older/different shape, so missing columns get added instead of failing on save.
 const init = pool.query(`
   CREATE TABLE IF NOT EXISTS items (
     id               SERIAL PRIMARY KEY,
@@ -17,7 +19,17 @@ const init = pool.query(`
     status_flag      BOOLEAN DEFAULT true,
     entered_by       INTEGER,
     updated_by       INTEGER
-  )
+  );
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS hsn_code         VARCHAR(30)  DEFAULT '0';
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS rate             NUMERIC(12,2) DEFAULT 0;
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS not_use          BOOLEAN DEFAULT false;
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS staff_req        BOOLEAN DEFAULT false;
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS not_print        BOOLEAN DEFAULT false;
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS conve_multi_qnty BOOLEAN DEFAULT false;
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS delete_flag      BOOLEAN DEFAULT false;
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS status_flag      BOOLEAN DEFAULT true;
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS entered_by       INTEGER;
+  ALTER TABLE items ADD COLUMN IF NOT EXISTS updated_by       INTEGER;
 `).catch(err => console.error('items table init error:', err.message));
 
 router.get('/', auth, async (req, res) => {
