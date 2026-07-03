@@ -8,6 +8,7 @@ import OutdoorOrderForm from './pages/outdoor/OutdoorOrderForm';
 import StudioOrders from './pages/studio/StudioOrders';
 import StudioOrderForm from './pages/studio/StudioOrderForm';
 import Quotations from './pages/quotations/Quotations';
+import QuotationForm from './pages/quotations/QuotationForm';
 import Sales from './pages/finance/Sales';
 import Purchases from './pages/finance/Purchases';
 import Payments from './pages/finance/Payments';
@@ -53,6 +54,8 @@ export default function App() {
 
             {/* Quotations & Bookings */}
             <Route path="quotations" element={<Quotations />} />
+            <Route path="quotations/new" element={<QuotationForm />} />
+            <Route path="quotations/:id" element={<QuotationForm />} />
             <Route path="bookings" element={<Bookings />} />
 
             {/* Finance */}
