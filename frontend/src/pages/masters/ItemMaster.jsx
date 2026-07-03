@@ -65,7 +65,6 @@ export default function ItemMaster() {
           <h1 className="page-title">Item Master</h1>
           <p className="page-subtitle">{rows.length} items</p>
         </div>
-        <button className="btn btn-primary" onClick={openNew}><Plus size={16}/> New Item</button>
       </div>
 
       <div className="card">
@@ -76,6 +75,7 @@ export default function ItemMaster() {
               <input placeholder="Search by item name, HSN code..." value={search}
                 onChange={e => setSearch(e.target.value)} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16}/> New Item</button>
           </div>
           {loading ? <div className="table-loading">Loading…</div> : (
             <div className="table-wrap">

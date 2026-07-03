@@ -100,9 +100,6 @@ export default function Bookings() {
           <h1 className="page-title">Bookings</h1>
           <p className="page-subtitle">{total} total bookings</p>
         </div>
-        <button className="btn btn-primary" onClick={openNew}>
-          <Plus size={16} /> New Booking
-        </button>
       </div>
 
       {/* Stats */}
@@ -133,6 +130,7 @@ export default function Bookings() {
               <input placeholder="Search by customer, booking no, contact..."
                 value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16} /> New Booking</button>
             <select className="filter-select" value={statusFilter}
               onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
               <option value="">All Status</option>

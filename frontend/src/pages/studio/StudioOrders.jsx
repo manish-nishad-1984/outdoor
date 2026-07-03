@@ -37,9 +37,6 @@ export default function StudioOrders() {
           <h1 className="page-title">Studio Orders</h1>
           <p className="page-subtitle">{total} total orders</p>
         </div>
-        <button className="btn btn-primary" onClick={() => nav('/studio-orders/new')}>
-          <Plus size={16} /> New Order
-        </button>
       </div>
 
       <div className="card">
@@ -50,6 +47,7 @@ export default function StudioOrders() {
               <input placeholder="Search by customer, contact..." value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => nav('/studio-orders/new')}><Plus size={16} /> New Order</button>
           </div>
 
           {loading ? <div className="table-loading">Loading…</div> : (

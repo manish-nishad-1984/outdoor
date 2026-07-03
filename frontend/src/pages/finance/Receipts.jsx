@@ -64,7 +64,6 @@ export default function Receipts() {
           <h1 className="page-title">Receipts</h1>
           <p className="page-subtitle">{total} total receipts</p>
         </div>
-        <button className="btn btn-primary" onClick={openModal}><Plus size={16}/> New Receipt</button>
       </div>
 
       <div className="stats-grid" style={{marginBottom:16}}>
@@ -81,6 +80,7 @@ export default function Receipts() {
               <Search size={15} className="search-icon"/>
               <input placeholder="Search client, receipt no..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Receipt</button>
           </div>
           {loading ? <div className="table-loading">Loading…</div> : (
             <div className="table-wrap">

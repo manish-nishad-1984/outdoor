@@ -58,7 +58,6 @@ export default function Accounts() {
           <h1 className="page-title">Accounts</h1>
           <p className="page-subtitle">{rows.length} accounts</p>
         </div>
-        <button className="btn btn-primary" onClick={openNew}><Plus size={16}/> New Account</button>
       </div>
 
       <div className="card">
@@ -69,6 +68,7 @@ export default function Accounts() {
               <input placeholder="Search by name, mobile..." value={search}
                 onChange={e => setSearch(e.target.value)} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16}/> New Account</button>
           </div>
           {loading ? <div className="table-loading">Loading…</div> : (
             <div className="table-wrap">

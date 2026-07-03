@@ -37,7 +37,6 @@ export default function Quotations() {
           <h1 className="page-title">Quotations</h1>
           <p className="page-subtitle">{total} total quotations</p>
         </div>
-        <button className="btn btn-primary" onClick={() => nav('/quotations/new')}><Plus size={16}/> New Quotation</button>
       </div>
       <div className="card">
         <div className="card-body">
@@ -47,6 +46,7 @@ export default function Quotations() {
               <input placeholder="Search by quo no, client, couple, contact..." value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={() => nav('/quotations/new')}><Plus size={16}/> New Quotation</button>
           </div>
           {loading ? <div className="table-loading">Loading…</div> : (
             <div className="table-wrap">

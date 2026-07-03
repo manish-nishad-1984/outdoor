@@ -75,9 +75,6 @@ export default function HireOrders() {
           <h1 className="page-title">Hire Orders</h1>
           <p className="page-subtitle">{total} total hire orders</p>
         </div>
-        <button className="btn btn-primary" onClick={openModal}>
-          <Plus size={16}/> New Hire Order
-        </button>
       </div>
 
       {/* Stats */}
@@ -95,6 +92,7 @@ export default function HireOrders() {
               <input placeholder="Search by customer, contact..." value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Hire Order</button>
           </div>
 
           {loading ? <div className="table-loading">Loading…</div> : (

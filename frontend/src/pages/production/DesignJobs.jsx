@@ -90,9 +90,6 @@ export default function DesignJobs() {
           <h1 className="page-title">Design Jobs</h1>
           <p className="page-subtitle">{total} total jobs</p>
         </div>
-        <button className="btn btn-primary" onClick={openModal}>
-          <Plus size={16}/> New Design Job
-        </button>
       </div>
 
       {/* Stats */}
@@ -111,6 +108,7 @@ export default function DesignJobs() {
               <input placeholder="Search by couple name, item..." value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Design Job</button>
             <select className="filter-select" value={typeFilter} onChange={e=>{setTypeFilter(e.target.value);setPage(1);}}>
               <option value="">All Types</option>
               {JOB_TYPES.map(t=><option key={t}>{t}</option>)}

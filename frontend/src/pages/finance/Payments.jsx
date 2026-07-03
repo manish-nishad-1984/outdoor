@@ -67,9 +67,6 @@ export default function Payments() {
           <h1 className="page-title">Payments</h1>
           <p className="page-subtitle">{total} payment vouchers</p>
         </div>
-        <button className="btn btn-primary" onClick={openModal}>
-          <Plus size={16}/> New Payment
-        </button>
       </div>
 
       {/* Stats */}
@@ -100,6 +97,7 @@ export default function Payments() {
               <input placeholder="Search by party, voucher no..." value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Payment</button>
           </div>
           {loading ? <div className="table-loading">Loading…</div> : (
             <div className="table-wrap">

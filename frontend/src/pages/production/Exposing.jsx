@@ -74,9 +74,6 @@ export default function Exposing() {
           <h1 className="page-title">Exposing / Printing</h1>
           <p className="page-subtitle">{total} total print jobs</p>
         </div>
-        <button className="btn btn-primary" onClick={openModal}>
-          <Plus size={16}/> New Print Job
-        </button>
       </div>
 
       {/* Stats */}
@@ -95,6 +92,7 @@ export default function Exposing() {
               <input placeholder="Search by party name, contact..." value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
+            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Print Job</button>
             <select className="filter-select" value={typeFilter} onChange={e=>{setTypeFilter(e.target.value);setPage(1);}}>
               <option value="">All Types</option>
               {JOB_TYPES.map(t=><option key={t}>{t}</option>)}
