@@ -33,8 +33,8 @@ router.post('/', auth, async (req,res)=>{
     const cnt = await pool.query('SELECT COUNT(*) FROM studio_orders');
     const order_no = `STU-${String(parseInt(cnt.rows[0].count)+1).padStart(3,'0')}`;
     const r = await pool.query(
-      `INSERT INTO studio_orders(order_no,customer_address,customer_contact,inquiry_date,delivery_date,gross_total,subtotal,entered_by) VALUES($1,$2,$3,$4,$5,$6,$6,$7) RETURNING *`,
-      [order_no,customer_name,customer_contact,order_date||new Date(),delivery_date,gross_total||0,req.user.id]
+      `INSERT INTO studio_orders(order_no,customer_address,customer_contact,inquiry_date,delivery_date,gross_total,subtotal) VALUES($1,$2,$3,$4,$5,$6,$6) RETURNING *`,
+      [order_no,customer_name,customer_contact,order_date||new Date(),delivery_date,gross_total||0]
     );
     res.status(201).json(r.rows[0]);
   } catch(err){res.status(500).json({error:err.message});}
@@ -44,8 +44,8 @@ router.put('/:id', auth, async (req,res)=>{
   try {
     const {customer_name,customer_contact,delivery_date,gross_total,status} = req.body;
     const r = await pool.query(
-      `UPDATE studio_orders SET customer_address=$1,customer_contact=$2,delivery_date=$3,gross_total=$4,subtotal=$4,status=$5,updated_by=$6 WHERE id=$7 RETURNING *`,
-      [customer_name,customer_contact,delivery_date,gross_total||0,status||false,req.user.id,req.params.id]
+      `UPDATE studio_orders SET customer_address=$1,customer_contact=$2,delivery_date=$3,gross_total=$4,subtotal=$4,status=$5 WHERE id=$6 RETURNING *`,
+      [customer_name,customer_contact,delivery_date,gross_total||0,status||false,req.params.id]
     );
     res.json(r.rows[0]);
   } catch(err){res.status(500).json({error:err.message});}

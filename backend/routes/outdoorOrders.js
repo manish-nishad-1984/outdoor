@@ -39,7 +39,7 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const order = await pool.query(`SELECT * FROM outdoor_orders WHERE id=$1`, [req.params.id]);
     if (!order.rows.length) return res.status(404).json({ error: 'Not found' });
-    const items = await pool.query(`SELECT * FROM outdoor_order_items WHERE order_id=$1`, [req.params.id]);
+    const items = await pool.query(`SELECT * FROM outdoor_order_items WHERE outdoor_order_id=$1`, [req.params.id]);
     res.json({ ...order.rows[0], items: items.rows });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -68,9 +68,9 @@ router.post('/', auth, async (req, res) => {
 
     for (const item of items) {
       await client.query(`
-        INSERT INTO outdoor_order_items (order_id, rate, qty, total)
-        VALUES ($1,$2,$3,$4)
-      `, [orderId, item.rate || 0, item.qty || 1, item.amount || 0]);
+        INSERT INTO outdoor_order_items (outdoor_order_id, item_name_snap, rate, box_qty, total)
+        VALUES ($1,$2,$3,$4,$5)
+      `, [orderId, item.description || '', item.rate || 0, item.qty || 1, item.amount || 0]);
     }
 
     await client.query('COMMIT');

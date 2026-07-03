@@ -42,7 +42,8 @@ router.post('/', auth, async (req, res) => {
       `INSERT INTO sales(order_no,customer_name,inquiry_date,payment_mode,gross_total,discount_rs,advance,total_pending,status)
        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [order_no, customer_name, inquiry_date||new Date().toISOString().slice(0,10),
-       payment_mode||'Cash', gross_total||0, discount_rs||0, advance||0, total_pending, status||'Pending']
+       payment_mode||'Cash', gross_total||0, discount_rs||0, advance||0, total_pending,
+       status === true || status === 'Completed' || status === 'Done']
     );
     res.status(201).json(r.rows[0]);
   } catch(err){ res.status(500).json({ error: err.message }); }
