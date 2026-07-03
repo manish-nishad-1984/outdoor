@@ -50,6 +50,7 @@ const NAV = [
     label: 'Masters', icon: Package,
     children: [
       { to: '/items', label: 'Item Master', icon: Package },
+      { to: '/events', label: 'Event Master', icon: CalendarCheck },
       { to: '/accounts', label: 'Account Master', icon: BookOpen },
     ]
   },

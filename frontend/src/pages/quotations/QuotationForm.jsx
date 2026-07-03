@@ -25,6 +25,7 @@ export default function QuotationForm() {
   const [items, setItems]   = useState([]);
   const [entry, setEntry]   = useState({ ...EMPTY_ENTRY });
   const [itemList, setItemList] = useState([]);
+  const [eventList, setEventList] = useState([]);
   const [recent, setRecent] = useState([]);
   const [showWed, setShowWed]   = useState(false);
   const [showPre, setShowPre]   = useState(false);
@@ -37,6 +38,7 @@ export default function QuotationForm() {
        .catch(() => {});
     api.get('/quotations', { params: { limit: 12 } })
        .then(r => setRecent(r.data.data || [])).catch(() => {});
+    api.get('/events').then(r => setEventList((r.data || []).filter(x => !x.not_use).map(x => x.event_name))).catch(() => {});
   }, []);
 
   // Load next number (new) or existing record (edit)
@@ -273,7 +275,7 @@ export default function QuotationForm() {
               <input list="event-list" value={entry.event_name}
                 onChange={e => setE('event_name', e.target.value)} placeholder="Event…" />
               <datalist id="event-list">
-                {EVENTS.map(ev => <option key={ev} value={ev} />)}
+                {(eventList.length ? eventList : EVENTS).map(ev => <option key={ev} value={ev} />)}
               </datalist>
             </div>
             <div className="form-group" style={{ width: 80 }}>

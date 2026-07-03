@@ -29,6 +29,7 @@ export default function StudioOrderForm() {
   const [items, setItems]     = useState([]);
   const [entry, setEntry]     = useState({ ...EMPTY_ENTRY });
   const [itemList, setItemList] = useState([]);
+  const [eventList, setEventList] = useState([]);
   const [quos, setQuos]       = useState([]);
   const [recent, setRecent]   = useState([]);
   const [panel, setPanel]     = useState('');
@@ -39,6 +40,7 @@ export default function StudioOrderForm() {
     api.get('/items').then(r => setItemList((r.data || []).filter(x => !x.not_use))).catch(() => {});
     api.get('/quotations', { params: { limit: 100 } }).then(r => setQuos(r.data.data || [])).catch(() => {});
     api.get('/studio-orders', { params: { limit: 12 } }).then(r => setRecent(r.data.data || [])).catch(() => {});
+    api.get('/events').then(r => setEventList((r.data || []).filter(x => !x.not_use).map(x => x.event_name))).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -249,7 +251,7 @@ export default function StudioOrderForm() {
               <datalist id="stu-item-list">{itemList.map(it => <option key={it.id} value={it.item_name} />)}</datalist></div>
             <div className="form-group" style={{ flex: 1.4 }}><label>Event Name</label>
               <input list="stu-event-list" value={entry.event_name} onChange={e => setE('event_name', e.target.value)} placeholder="Event…" />
-              <datalist id="stu-event-list">{EVENTS.map(ev => <option key={ev} value={ev} />)}</datalist></div>
+              <datalist id="stu-event-list">{(eventList.length ? eventList : EVENTS).map(ev => <option key={ev} value={ev} />)}</datalist></div>
             <div className="form-group" style={{ width: 80 }}><label>Qnty</label>
               <input type="number" min={0} value={entry.qnty} onChange={e => setE('qnty', e.target.value)} /></div>
             <div className="form-group" style={{ width: 110 }}><label>Rate</label>
