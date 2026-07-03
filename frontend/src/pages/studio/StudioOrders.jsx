@@ -28,7 +28,7 @@ export default function StudioOrders() {
   };
 
   const fmt = (d) => d ? new Date(d).toLocaleDateString('en-IN') : '-';
-  const cur = (n) => n != null ? `â‚¹${parseFloat(n).toLocaleString('en-IN')}` : '-';
+  const cur = (n) => n != null ? `₹${parseFloat(n).toLocaleString('en-IN')}` : '-';
 
   return (
     <div className="page-container">
@@ -52,7 +52,7 @@ export default function StudioOrders() {
             </div>
           </div>
 
-          {loading ? <div className="table-loading">Loadingâ€¦</div> : (
+          {loading ? <div className="table-loading">Loading…</div> : (
             <div className="table-wrap">
               <table className="data-table">
                 <thead><tr>

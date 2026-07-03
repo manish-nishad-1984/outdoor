@@ -69,7 +69,7 @@ export default function StudioOrderForm() {
               <input type="date" value={form.delivery_date} onChange={set('delivery_date')} />
             </div>
             <div className="form-group">
-              <label>Amount (â‚¹)</label>
+              <label>Amount (₹)</label>
               <input type="number" value={form.gross_total} onChange={set('gross_total')} />
             </div>
             {id && (
@@ -83,7 +83,7 @@ export default function StudioOrderForm() {
             )}
             <div className="form-actions">
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                <Save size={15}/> {saving ? 'Savingâ€¦' : 'Save Order'}
+                <Save size={15}/> {saving ? 'Saving…' : 'Save Order'}
               </button>
             </div>
           </form>

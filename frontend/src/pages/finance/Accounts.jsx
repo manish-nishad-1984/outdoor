@@ -49,7 +49,7 @@ export default function Accounts() {
   };
 
   const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
-  const cur = n => n != null ? `â‚¹${parseFloat(n).toLocaleString('en-IN')}` : '-';
+  const cur = n => n != null ? `₹${parseFloat(n).toLocaleString('en-IN')}` : '-';
 
   return (
     <div className="page-container">
@@ -70,7 +70,7 @@ export default function Accounts() {
                 onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
-          {loading ? <div className="table-loading">Loadingâ€¦</div> : (
+          {loading ? <div className="table-loading">Loading…</div> : (
             <div className="table-wrap">
               <table className="data-table">
                 <thead><tr>
@@ -146,7 +146,7 @@ export default function Accounts() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-ghost" onClick={() => setModal(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving?'Savingâ€¦':'Save'}</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving?'Saving…':'Save'}</button>
               </div>
             </form>
           </div>
