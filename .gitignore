@@ -5,3 +5,4 @@ DEPLOY.md
 *.log
 migration/uploads/
 migration/migration.log
+legacy/

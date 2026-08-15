@@ -11,7 +11,7 @@ const titles = {
   '/purchases': 'Purchases',
   '/receipts': 'Receipts',
   '/payments': 'Payments',
-  '/accounts': 'Accounts',
+  '/accounts': 'Account Master',
   '/design-jobs': 'Design Jobs',
   '/exposing': 'Exposing / Print',
   '/hire-orders': 'Hire Orders',
@@ -20,6 +20,10 @@ const titles = {
   '/payroll': 'Payroll',
   '/reports': 'Reports',
   '/settings': 'Settings',
+  '/items': 'Item Master',
+  '/events': 'Event Master',
+  '/account-groups': 'Account Group',
+  '/deliverable-items': 'Post Production Item',
 };
 
 export default function Layout() {

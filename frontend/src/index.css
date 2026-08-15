@@ -334,6 +334,7 @@ tbody tr:hover td { background: #f9fafb; }
    FORM
 ═══════════════════════════════════════════ */
 .form-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-divider { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
 .form-group { display: flex; flex-direction: column; gap: 5px; }
 .form-group label { font-size: 12.5px; font-weight: 600; color: #374151; }
 .form-group input,
@@ -373,6 +374,32 @@ tbody tr:hover td { background: #f9fafb; }
 .quotation-actions .btn { flex: 1; min-width: 120px; justify-content: center; }
 .btn-danger { background: #dc2626; color: #fff; border: 1px solid #dc2626; }
 .btn-danger:hover { background: #b91c1c; }
+
+/* Compact layout — scoped to the Quotation form only, so it can fit one screen without
+   the whole page needing to scroll (matching the legacy dialog, which was a fixed-size
+   window). Overflow within any one section — e.g. many detail rows — scrolls locally
+   inside that section instead of growing the page. */
+.quotation-form .card { margin-bottom: 4px; }
+.quotation-form .card-body { padding: 6px 10px; }
+.quotation-form .card-header { padding: 5px 10px; }
+.quotation-form .form-grid { gap: 4px 10px; }
+/* Claw back the page's own top/bottom padding too, since this form is the one page in
+   the app tight enough on vertical space to need it. */
+body:has(.quotation-form) .content { padding: 10px 20px; }
+.quotation-form .form-group { gap: 2px; }
+.quotation-form .form-group label { font-size: 10.5px; }
+.quotation-form .form-group input,
+.quotation-form .form-group select,
+.quotation-form .form-group textarea { padding: 4px 8px; font-size: 12.5px; }
+.quotation-form .form-select { height: 27px; padding: 0 8px; font-size: 12.5px; }
+.quotation-form .qitem-entry { gap: 6px; }
+.quotation-form .summary-row { padding: 4px 10px; font-size: 12.5px; }
+.quotation-form .data-table th { padding: 5px 8px; font-size: 10px; }
+.quotation-form .data-table td { padding: 4px 8px; font-size: 12.5px; }
+.quotation-form .quotation-actions { padding: 5px; margin-top: 4px; }
+.quotation-form .quotation-actions .btn { padding: 6px 8px; font-size: 12px; min-width: 90px; }
+.quotation-form .alert { padding: 6px 12px; margin-bottom: 6px; font-size: 12.5px; }
+.quotation-form textarea { min-height: 40px; }
 
 /* ═══════════════════════════════════════════
    PAGE COLS

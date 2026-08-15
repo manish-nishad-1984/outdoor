@@ -27,6 +27,8 @@ import Bookings from './pages/bookings/Bookings';
 import SaleForm from './pages/finance/SaleForm';
 import ItemMaster from './pages/masters/ItemMaster';
 import EventMaster from './pages/masters/EventMaster';
+import AccountGroups from './pages/masters/AccountGroups';
+import DeliverableItems from './pages/masters/DeliverableItems';
 import StubPage from './pages/StubPage';
 
 function PrivateRoute({ children }) {
@@ -83,6 +85,8 @@ export default function App() {
             {/* Reports & Settings */}
             <Route path="items" element={<ItemMaster />} />
             <Route path="events" element={<EventMaster />} />
+            <Route path="account-groups" element={<AccountGroups />} />
+            <Route path="deliverable-items" element={<DeliverableItems />} />
 
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />

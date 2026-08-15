@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Camera, Building2, FileText, CalendarCheck,
   ShoppingCart, Package, Receipt, CreditCard, BookOpen,
   Palette, Printer, Truck, Users, Clock, Wallet,
-  BarChart2, Settings, LogOut, ChevronDown, ChevronRight
+  BarChart2, Settings, LogOut, ChevronDown, ChevronRight, Layers, ListChecks
 } from 'lucide-react';
 
 const NAV = [
@@ -51,7 +51,9 @@ const NAV = [
     children: [
       { to: '/items', label: 'Item Master', icon: Package },
       { to: '/events', label: 'Event Master', icon: CalendarCheck },
+      { to: '/account-groups', label: 'Account Group', icon: Layers },
       { to: '/accounts', label: 'Account Master', icon: BookOpen },
+      { to: '/deliverable-items', label: 'Post Production Item', icon: ListChecks },
     ]
   },
   { label: 'Reports',  to: '/reports',  icon: BarChart2 },
