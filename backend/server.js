@@ -31,6 +31,8 @@ app.use('/api/attendance',      require('./routes/attendance'));
 app.use('/api/bookings',        require('./routes/bookings'));
 app.use('/api/payroll',         require('./routes/payroll'));
 app.use('/api/print-settings',  require('./routes/printSettings'));
+app.use('/api/users',           require('./routes/users'));
+app.use('/api/user-permissions', require('./routes/userPermissions'));
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 

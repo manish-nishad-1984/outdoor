@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Camera, Building2, FileText, CalendarCheck,
   ShoppingCart, Package, Receipt, CreditCard, BookOpen,
-  Palette, Printer, Truck, Users, Clock, Wallet,
+  Palette, Printer, Truck, Users, Clock, Wallet, UserPlus, ShieldCheck,
   BarChart2, Settings, LogOut, ChevronDown, ChevronRight, Layers, ListChecks
 } from 'lucide-react';
 
@@ -56,6 +56,8 @@ const NAV = [
     label: 'Utility', icon: Settings,
     children: [
       { to: '/print-settings', label: 'Print Settings', icon: Printer },
+      { to: '/user-creation',  label: 'User Creation',  icon: UserPlus },
+      { to: '/user-permission', label: 'User Permission', icon: ShieldCheck },
       { to: '/employees',  label: 'Employees',  icon: Users },
       { to: '/attendance', label: 'Attendance', icon: Clock },
       { to: '/payroll',    label: 'Payroll',    icon: Wallet },
