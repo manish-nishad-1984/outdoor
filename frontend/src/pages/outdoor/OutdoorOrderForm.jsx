@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Save, Trash2, Printer, X, LogOut, MessageSquare, Mail, Send, Plus, Check
+  Save, Trash2, Printer, X, LogOut, MessageSquare, Mail, Send, Plus, Pencil, Check
 } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -11,10 +11,20 @@ const PAYMENTS = ['Cash','UPI','Cheque','Card','Bank Transfer'];
 
 const today = () => new Date().toISOString().slice(0, 10);
 const EMPTY_ENTRY = {
-  function_date: today(), item_name: '', event_name: '', qnty: 1, rate: 0, total: 0,
-  place: '', time_slot: '', data_issue_from_operator: false,
-  operator_name: '', op_rate: 0, item_remark: '', sms_flag: false, data_flag: false,
+  function_date: today(), item_name: '', item_id: null, event_name: '', event_id: null,
+  qnty: 1, rate: 0, total: 0, place: '', time_slot: '', data_issue_from_operator: false,
+  operator_name: '', operator_id: null, op_rate: 0, item_remark: '', sms_flag: false, data_flag: false,
   data1: '', date1: '',
+};
+const EMPTY_DELIVERABLE_ENTRY = { item_name: '', deliverable_item_id: null, qnty: 1, amount: 0 };
+const EMPTY_FORM = {
+  order_no: '', order_date: today(), mob_no: '', cust_name: '', address: '',
+  quo_no: '', couple_name: '', remark: '', ref_by: '', package_name: '',
+  discount: 0, advance: 0, payment_mode: 'Cash', bank_name: '', cheque_no: '',
+  display_staff_expenses: false, final_delivery_notes: '', prewedding_deliverables: '', family_detail: '',
+  st_selection: false, st_invitation: false, st_data: false, st_delivery: false,
+  st_desining: false, st_printing: false, st_dvd_pendrive: false, st_done: false, st_reels: false,
+  desining_opt: '', printing_opt: '', dvd_opt: '',
 };
 
 export default function OutdoorOrderForm() {
@@ -22,21 +32,23 @@ export default function OutdoorOrderForm() {
   const nav = useNavigate();
   const isEdit = Boolean(id);
 
-  const [form, setForm] = useState({
-    order_no: '', order_date: today(), mob_no: '', cust_name: '', address: '',
-    quo_no: '', couple_name: '', remark: '', ref_by: '', package_name: '',
-    discount: 0, advance: 0, payment_mode: 'Cash',
-    display_staff_expenses: false, final_delivery_notes: '', prewedding_deliverables: '', family_detail: '',
-    st_selection: false, st_invitation: false, st_data: false, st_delivery: false,
-    st_desining: false, st_printing: false, st_dvd_pendrive: false, st_done: false, st_reels: false,
-    desining_opt: '', printing_opt: '', dvd_opt: '',
-  });
+  const [form, setForm] = useState({ ...EMPTY_FORM });
   const [items, setItems]     = useState([]);
   const [entry, setEntry]     = useState({ ...EMPTY_ENTRY });
+  const [editingIndex, setEditingIndex] = useState(null);
   const [itemList, setItemList] = useState([]);
   const [eventList, setEventList] = useState([]);
-  const [operators, setOperators] = useState([]);
-  const [quos, setQuos]       = useState([]);
+  const [operatorList, setOperatorList] = useState([]); // Account Master, EXPOSER/PARTY group
+  const [clientList, setClientList]     = useState([]); // Account Master, CLIENT group
+  const [deliverableList, setDeliverableList] = useState([]);
+  const [deliverables, setDeliverables] = useState([]);
+  const [deliverableEntry, setDeliverableEntry] = useState({ ...EMPTY_DELIVERABLE_ENTRY });
+  const [editingDeliverableIndex, setEditingDeliverableIndex] = useState(null);
+  const [availableQuos, setAvailableQuos] = useState([]); // this client's not-yet-converted quotations
+  const [clientHistory, setClientHistory] = useState([]);
+  const [previousPending, setPreviousPending] = useState(0);
+  const [clientId, setClientId] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState(null);
   const [recent, setRecent]   = useState([]);
   const [panel, setPanel]     = useState(''); // '', 'final', 'pre', 'family'
   const [saving, setSaving]   = useState(false);
@@ -44,12 +56,17 @@ export default function OutdoorOrderForm() {
 
   useEffect(() => {
     api.get('/items').then(r => setItemList((r.data || []).filter(x => !x.not_use))).catch(() => {});
-    api.get('/quotations', { params: { limit: 100 } }).then(r => setQuos(r.data.data || [])).catch(() => {});
-    api.get('/outdoor-orders', { params: { limit: 12 } }).then(r => setRecent(r.data.data || [])).catch(() => {});
     api.get('/events').then(r => setEventList((r.data || []).filter(x => !x.not_use).map(x => x.event_name))).catch(() => {});
-    api.get('/employees').then(r => {
-      const list = Array.isArray(r.data) ? r.data : (r.data.data || []);
-      setOperators(list.map(e => e.name || e.employee_name || e.full_name).filter(Boolean));
+    api.get('/deliverable-items').then(r => setDeliverableList(r.data || [])).catch(() => {});
+    api.get('/outdoor-orders', { params: { limit: 12 } }).then(r => setRecent(r.data.data || [])).catch(() => {});
+    api.get('/accounts-master').then(r => {
+      const groups = r.data || [];
+      const clientGroup = groups.find(g => (g.group_name || '').toUpperCase() === 'CLIENT');
+      if (clientGroup) api.get('/accounts', { params: { group_id: clientGroup.id } })
+        .then(r2 => setClientList(r2.data || [])).catch(() => {});
+      const opGroup = groups.find(g => (g.group_name || '').toUpperCase() === 'EXPOSER/PARTY');
+      if (opGroup) api.get('/accounts', { params: { group_id: opGroup.id } })
+        .then(r2 => setOperatorList(r2.data || [])).catch(() => {});
     }).catch(() => {});
   }, []);
 
@@ -63,6 +80,7 @@ export default function OutdoorOrderForm() {
           address: o.address || '', quo_no: o.quo_no || '', couple_name: o.couple_name || '',
           remark: o.remark || '', ref_by: o.ref_by || '', package_name: o.package_name || '',
           discount: o.discount || 0, advance: o.advance || 0, payment_mode: o.payment_mode || 'Cash',
+          bank_name: '', cheque_no: o.cheque_no || '',
           display_staff_expenses: !!o.display_staff_expenses, final_delivery_notes: o.final_delivery_notes || '',
           prewedding_deliverables: o.prewedding_deliverables || '', family_detail: o.family_detail || '',
           st_selection: !!o.st_selection, st_invitation: !!o.st_invitation, st_data: !!o.st_data,
@@ -70,14 +88,22 @@ export default function OutdoorOrderForm() {
           st_dvd_pendrive: !!o.st_dvd_pendrive, st_done: !!o.st_done, st_reels: !!o.st_reels,
           desining_opt: o.desining_opt || '', printing_opt: o.printing_opt || '', dvd_opt: o.dvd_opt || '',
         });
+        setClientId(o.client_id || null);
+        setUpdatedAt(o.updated_at || null);
+        setPreviousPending(Number(o.previous_pending) || 0);
         setItems((o.items || []).map(it => ({
           function_date: it.function_date?.slice(0,10) || '', item_name: it.item_name || it.item_name_snap || '',
-          event_name: it.event_name || '', qnty: Number(it.qnty ?? it.box_qty) || 0,
+          item_id: it.item_id, event_name: it.event_name || '', event_id: it.event_id,
+          qnty: Number(it.qnty ?? it.box_qty) || 0,
           rate: Number(it.rate) || 0, total: Number(it.total) || 0, place: it.place || '',
           time_slot: it.time_slot || '', data_issue_from_operator: !!it.data_issue_from_operator,
-          operator_name: it.operator_name || '', op_rate: Number(it.op_rate) || 0,
+          operator_name: it.operator_name || '', operator_id: it.operator_id, op_rate: Number(it.op_rate) || 0,
           item_remark: it.item_remark || '', sms_flag: !!it.sms_flag, data_flag: !!it.data_flag,
           data1: it.data1 || '', date1: it.date1?.slice(0,10) || '',
+        })));
+        setDeliverables((o.deliverables || []).map(d => ({
+          deliverable_item_id: d.deliverable_item_id, item_name: d.item_name,
+          qnty: Number(d.qnty) || 0, amount: Number(d.amount) || 0,
         })));
       }).catch(() => setErr('Failed to load order'));
     } else {
@@ -88,6 +114,50 @@ export default function OutdoorOrderForm() {
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const chk = k => e => setForm(f => ({ ...f, [k]: e.target.checked }));
 
+  // Client selection — mirrors legacy CmbPName: auto-fill address/mob_no, load previous
+  // pending, this client's order history, and (Add mode only) their not-yet-converted
+  // quotations for the Quo No picker.
+  const onClientBlur = () => {
+    const name = form.cust_name.trim();
+    if (!name) return;
+    api.get('/outdoor-orders/client-info', { params: { client_name: name, exclude_id: id || 0 } })
+      .then(r => {
+        if (r.data) {
+          setForm(f => ({ ...f, address: f.address || r.data.address, mob_no: f.mob_no || r.data.contact_no }));
+          setClientId(r.data.client_id || null);
+          if (!isEdit) setPreviousPending(r.data.previous_pending);
+        } else {
+          setClientId(null);
+        }
+      }).catch(() => {});
+    api.get('/outdoor-orders', { params: { search: name, limit: 200 } })
+      .then(r => setClientHistory((r.data.data || []).filter(o => (o.party_name || '').toUpperCase() === name.toUpperCase())))
+      .catch(() => {});
+    if (!isEdit) {
+      api.get('/outdoor-orders/available-quotations', { params: { client_name: name } })
+        .then(r => setAvailableQuos(r.data || [])).catch(() => {});
+    }
+  };
+
+  // Picking a Quo No (Add mode only) — mirrors CmbQNo_LostFocus: prefills header + copies
+  // the quotation's full item grid and Post Production Items (operator left blank per row).
+  const onQuoPick = (quoNo) => {
+    setForm(f => ({ ...f, quo_no: quoNo }));
+    if (!quoNo || isEdit) return;
+    api.get(`/outdoor-orders/from-quotation/${quoNo}`).then(r => {
+      const q = r.data;
+      setForm(f => ({
+        ...f, cust_name: q.client_name || f.cust_name, couple_name: q.couple_name || f.couple_name,
+        remark: q.remark || f.remark, ref_by: q.ref_by || f.ref_by, address: q.address || f.address,
+        mob_no: q.mob_no || f.mob_no, package_name: q.package_name || f.package_name,
+        discount: q.discount || f.discount,
+      }));
+      setClientId(q.client_id || null);
+      setItems((q.items || []).map(it => ({ ...EMPTY_ENTRY, ...it })));
+      setDeliverables(q.deliverables || []);
+    }).catch(() => setErr('Failed to load quotation'));
+  };
+
   const setE = (k, v) => setEntry(en => {
     const next = { ...en, [k]: v };
     if (k === 'qnty' || k === 'rate') next.total = (Number(next.qnty) * Number(next.rate)) || 0;
@@ -97,23 +167,56 @@ export default function OutdoorOrderForm() {
     const it = itemList.find(x => x.item_name === name);
     setEntry(en => {
       const rate = it ? Number(it.rate) || 0 : en.rate;
-      return { ...en, item_name: name, rate, total: (Number(en.qnty) * rate) || 0 };
+      return { ...en, item_name: name, item_id: it?.id || null, rate, total: (Number(en.qnty) * rate) || 0 };
     });
   };
-  const addEntry = () => {
+  const onPickOperator = (name) => {
+    const op = operatorList.find(x => x.account_name === name);
+    setEntry(en => ({ ...en, operator_name: name, operator_id: op?.id || null }));
+  };
+  const addOrUpdateEntry = () => {
     if (!entry.item_name) return setErr('Select an item to add');
     setErr('');
-    setItems(arr => [...arr, { ...entry, total: (Number(entry.qnty) * Number(entry.rate)) || 0 }]);
+    const row = { ...entry, total: (Number(entry.qnty) * Number(entry.rate)) || 0 };
+    if (editingIndex === null) setItems(arr => [...arr, row]);
+    else setItems(arr => arr.map((r, i) => i === editingIndex ? row : r));
     setEntry({ ...EMPTY_ENTRY, function_date: entry.function_date });
+    setEditingIndex(null);
   };
-  const delRow = i => setItems(arr => arr.filter((_, x) => x !== i));
+  const editRow = i => { setEntry({ ...EMPTY_ENTRY, ...items[i] }); setEditingIndex(i); setErr(''); };
+  const cancelEntry = () => { setEntry({ ...EMPTY_ENTRY }); setEditingIndex(null); };
+  const delRow = i => { setItems(arr => arr.filter((_, x) => x !== i)); if (editingIndex === i) cancelEntry(); };
 
-  const subTotal   = items.reduce((s, it) => s + Number(it.total || 0), 0);
-  const grandTotal = Math.max(0, subTotal - Number(form.discount || 0));
-  const pending    = Math.max(0, grandTotal - Number(form.advance || 0));
+  // Post Production Item — same add/edit/remove pattern as the main item grid.
+  const setDE = (k, v) => setDeliverableEntry(en => ({ ...en, [k]: v }));
+  const onPickDeliverableItem = (name) => {
+    const d = deliverableList.find(x => x.item_name === name);
+    setDeliverableEntry(en => ({ ...en, item_name: name, deliverable_item_id: d?.id || null, qnty: d?.qnty || en.qnty || 1 }));
+  };
+  const addOrUpdateDeliverable = () => {
+    if (!deliverableEntry.item_name.trim()) return setErr('Select a post production item to add');
+    setErr('');
+    const row = { ...deliverableEntry };
+    if (editingDeliverableIndex === null) setDeliverables(arr => [...arr, row]);
+    else setDeliverables(arr => arr.map((r, i) => i === editingDeliverableIndex ? row : r));
+    setDeliverableEntry({ ...EMPTY_DELIVERABLE_ENTRY });
+    setEditingDeliverableIndex(null);
+  };
+  const editDeliverableRow = i => { setDeliverableEntry({ ...deliverables[i] }); setEditingDeliverableIndex(i); setErr(''); };
+  const cancelDeliverableEntry = () => { setDeliverableEntry({ ...EMPTY_DELIVERABLE_ENTRY }); setEditingDeliverableIndex(null); };
+  const delDeliverableRow = i => {
+    setDeliverables(arr => arr.filter((_, x) => x !== i));
+    if (editingDeliverableIndex === i) cancelDeliverableEntry();
+  };
+
+  const linesTotal   = items.reduce((s, it) => s + Number(it.total || 0), 0);
+  const deliverablesTotal = deliverables.reduce((s, d) => s + Number(d.amount || 0), 0);
+  const subTotal     = linesTotal + deliverablesTotal;
+  const grandTotal   = Math.max(0, subTotal - Number(form.discount || 0));
+  const pending      = Math.max(0, grandTotal - Number(form.advance || 0));
 
   const buildBody = () => ({
-    ...form, items,
+    ...form, items, deliverables, client_id: clientId, updated_at: updatedAt,
     discount: Number(form.discount || 0), advance: Number(form.advance || 0),
     quo_no: form.quo_no ? Number(form.quo_no) : null,
   });
@@ -129,7 +232,7 @@ export default function OutdoorOrderForm() {
     } catch (ex) { setErr(ex.response?.data?.error || 'Save failed'); }
     finally { setSaving(false); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, items, isEdit, id]);
+  }, [form, items, deliverables, clientId, updatedAt, isEdit, id]);
 
   const remove = async () => {
     if (!isEdit) return nav('/outdoor-orders');
@@ -148,6 +251,9 @@ export default function OutdoorOrderForm() {
       <td style="text-align:center">${it.qnty}</td>
       ${withRate ? `<td style="text-align:right">${cur(it.rate)}</td><td style="text-align:right">${cur(it.total)}</td>` : ''}
       </tr>`).join('');
+    const deliverableRows = deliverables.map(d => `
+      <tr><td colspan="3">${d.item_name}</td><td style="text-align:center">${d.qnty}</td>
+      ${withRate ? `<td></td><td style="text-align:right">${cur(d.amount)}</td>` : ''}</tr>`).join('');
     const totalsBlock = withRate ? `
       <table class="tot"><tbody>
         <tr><td>Sub Total</td><td style="text-align:right">${cur(subTotal)}</td></tr>
@@ -172,7 +278,7 @@ export default function OutdoorOrderForm() {
       <div class="muted">${form.couple_name || ''}</div><div class="muted">${form.mob_no || ''}</div></div></div>
       <table><thead><tr><th>Date</th><th>Item Name</th><th>Event</th><th style="text-align:center">Qnty</th>
       ${withRate ? '<th style="text-align:right">Rate</th><th style="text-align:right">Total</th>' : ''}</tr></thead>
-      <tbody>${rows}</tbody></table>${totalsBlock}
+      <tbody>${rows}${deliverableRows}</tbody></table>${totalsBlock}
       ${form.remark ? `<div class="note"><b>Remark:</b> ${form.remark}</div>` : ''}</body></html>`);
     w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
   };
@@ -189,6 +295,7 @@ export default function OutdoorOrderForm() {
     ['st_desining','Desining'], ['st_printing','Printing'], ['st_dvd_pendrive','DVD/Pendrive'],
     ['st_done','Done'], ['st_reels','Reels'],
   ];
+  const needsBank = form.payment_mode === 'Bank Transfer' || form.payment_mode === 'Cheque';
 
   return (
     <div className="page-container quotation-form">
@@ -214,7 +321,8 @@ export default function OutdoorOrderForm() {
             </div>
             <div className="form-group">
               <label>Cust. Name *</label>
-              <input value={form.cust_name} onChange={set('cust_name')} required />
+              <input list="oo-client-list" value={form.cust_name} onChange={set('cust_name')} onBlur={onClientBlur} required />
+              <datalist id="oo-client-list">{clientList.map(c => <option key={c.id} value={c.account_name} />)}</datalist>
             </div>
             <div className="form-group">
               <label>Mob No</label>
@@ -222,9 +330,10 @@ export default function OutdoorOrderForm() {
             </div>
             <div className="form-group">
               <label>Quo No</label>
-              <select value={form.quo_no} onChange={set('quo_no')}>
+              <select value={form.quo_no} onChange={e => onQuoPick(e.target.value)} disabled={isEdit}>
                 <option value="">—</option>
-                {quos.map(q => <option key={q.id} value={q.quo_no}>{q.quo_no} — {q.client_name}</option>)}
+                {(isEdit && form.quo_no) && <option value={form.quo_no}>{form.quo_no}</option>}
+                {!isEdit && availableQuos.map(q => <option key={q.id} value={q.quo_no}>{q.quo_no} — {q.client_name}</option>)}
               </select>
             </div>
             <div className="form-group">
@@ -250,21 +359,40 @@ export default function OutdoorOrderForm() {
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header"><div className="card-title">Order Detail</div></div>
-          <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
-            <table className="data-table">
-              <thead><tr><th>Or.No</th><th>Date</th></tr></thead>
-              <tbody>
-                {recent.length === 0 && <tr><td colSpan={2} style={{ color: '#9ca3af', padding: 12 }}>None yet</td></tr>}
-                {recent.map(r => (
-                  <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => nav(`/outdoor-orders/${r.id}`)}>
-                    <td><span className="badge badge-blue">{r.order_no}</span></td>
-                    <td>{fmt(r.event_date)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="card">
+            <div className="card-header"><div className="card-title">Order Detail</div></div>
+            <div className="table-wrap" style={{ maxHeight: 130, overflowY: 'auto' }}>
+              <table className="data-table">
+                <thead><tr><th>Or.No</th><th>Date</th></tr></thead>
+                <tbody>
+                  {recent.length === 0 && <tr><td colSpan={2} style={{ color: '#9ca3af', padding: 12 }}>None yet</td></tr>}
+                  {recent.map(r => (
+                    <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => nav(`/outdoor-orders/${r.id}`)}>
+                      <td><span className="badge badge-blue">{r.order_no}</span></td>
+                      <td>{fmt(r.event_date)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header"><div className="card-title">This Client's Orders</div></div>
+            <div className="table-wrap" style={{ maxHeight: 110, overflowY: 'auto' }}>
+              <table className="data-table">
+                <thead><tr><th>Or.No</th><th>Date</th></tr></thead>
+                <tbody>
+                  {clientHistory.length === 0 && <tr><td colSpan={2} style={{ color: '#9ca3af', padding: 12 }}>None yet</td></tr>}
+                  {clientHistory.map(r => (
+                    <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => nav(`/outdoor-orders/${r.id}`)}>
+                      <td><span className="badge badge-blue">{r.order_no}</span></td>
+                      <td>{fmt(r.event_date)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -300,8 +428,8 @@ export default function OutdoorOrderForm() {
 
           <div className="qitem-entry" style={{ marginTop: 10 }}>
             <div className="form-group" style={{ flex: 1.6 }}><label>Oprator Name</label>
-              <input list="oo-operator-list" value={entry.operator_name} onChange={e => setE('operator_name', e.target.value)} />
-              <datalist id="oo-operator-list">{operators.map((n,i) => <option key={i} value={n} />)}</datalist></div>
+              <input list="oo-operator-list" value={entry.operator_name} onChange={e => onPickOperator(e.target.value)} />
+              <datalist id="oo-operator-list">{operatorList.map(o => <option key={o.id} value={o.account_name} />)}</datalist></div>
             <div className="form-group" style={{ width: 110 }}><label>Op. Rate</label>
               <input type="number" min={0} value={entry.op_rate} onChange={e => setE('op_rate', e.target.value)} /></div>
             <div className="form-group" style={{ flex: 1.6 }}><label>Remark</label>
@@ -315,8 +443,10 @@ export default function OutdoorOrderForm() {
             <div className="form-group" style={{ width: 140 }}><label>Date 1</label>
               <input type="date" value={entry.date1} onChange={e => setE('date1', e.target.value)} /></div>
             <div className="qitem-entry-btns">
-              <button type="button" className="btn btn-primary btn-sm" onClick={addEntry}><Plus size={15} /> Add</button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEntry({ ...EMPTY_ENTRY })}>Cancel</button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateEntry}>
+                {editingIndex === null ? <><Plus size={15} /> Add</> : 'Update'}
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEntry}>Cancel</button>
             </div>
           </div>
         </div>
@@ -324,34 +454,88 @@ export default function OutdoorOrderForm() {
 
       {/* Items grid + totals */}
       <div className="page-cols" style={{ gridTemplateColumns: '2.4fr 1fr', marginTop: 16, alignItems: 'start' }}>
-        <div className="card">
-          <div className="table-wrap" style={{ minHeight: 200 }}>
-            <table className="data-table">
-              <thead><tr>
-                <th>Date</th><th>Item Name</th><th>Event</th><th style={{ textAlign: 'center' }}>Qnty</th>
-                <th style={{ textAlign: 'right' }}>Rate</th><th style={{ textAlign: 'right' }}>Total</th>
-                <th style={{ textAlign: 'center' }}>SMS</th><th style={{ textAlign: 'center' }}>Data</th>
-                <th>Data 1</th><th>Date 1</th><th></th>
-              </tr></thead>
-              <tbody>
-                {items.length === 0 && <tr><td colSpan={11} className="table-empty"><p>No items added</p></td></tr>}
-                {items.map((it, i) => (
-                  <tr key={i}>
-                    <td>{fmt(it.function_date)}</td>
-                    <td><strong>{it.item_name}</strong></td>
-                    <td>{it.event_name || '-'}</td>
-                    <td style={{ textAlign: 'center' }}>{it.qnty}</td>
-                    <td style={{ textAlign: 'right' }}>{cur(it.rate)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{cur(it.total)}</td>
-                    <td style={{ textAlign: 'center' }}>{flag(it.sms_flag)}</td>
-                    <td style={{ textAlign: 'center' }}>{flag(it.data_flag)}</td>
-                    <td>{it.data1 || '-'}</td>
-                    <td>{it.date1 ? fmt(it.date1) : '-'}</td>
-                    <td><button className="btn-danger-soft" onClick={() => delRow(i)}><Trash2 size={14} /></button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="card">
+            <div className="table-wrap" style={{ minHeight: 160 }}>
+              <table className="data-table">
+                <thead><tr>
+                  <th>Date</th><th>Item Name</th><th>Event</th><th style={{ textAlign: 'center' }}>Qnty</th>
+                  <th style={{ textAlign: 'right' }}>Rate</th><th style={{ textAlign: 'right' }}>Total</th>
+                  <th style={{ textAlign: 'center' }}>SMS</th><th style={{ textAlign: 'center' }}>Data</th>
+                  <th>Data 1</th><th>Date 1</th><th></th>
+                </tr></thead>
+                <tbody>
+                  {items.length === 0 && <tr><td colSpan={11} className="table-empty"><p>No items added</p></td></tr>}
+                  {items.map((it, i) => (
+                    <tr key={i} style={editingIndex === i ? { background: '#eff6ff' } : undefined}>
+                      <td>{fmt(it.function_date)}</td>
+                      <td><strong>{it.item_name}</strong></td>
+                      <td>{it.event_name || '-'}</td>
+                      <td style={{ textAlign: 'center' }}>{it.qnty}</td>
+                      <td style={{ textAlign: 'right' }}>{cur(it.rate)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{cur(it.total)}</td>
+                      <td style={{ textAlign: 'center' }}>{flag(it.sms_flag)}</td>
+                      <td style={{ textAlign: 'center' }}>{flag(it.data_flag)}</td>
+                      <td>{it.data1 || '-'}</td>
+                      <td>{it.date1 ? fmt(it.date1) : '-'}</td>
+                      <td>
+                        <div className="action-btns">
+                          <button className="btn-edit" onClick={() => editRow(i)}><Pencil size={14} /></button>
+                          <button className="btn-danger-soft" onClick={() => delRow(i)}><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Post Production Item — legacy TNS_WITEM3, same pattern as Quotation's */}
+          <div className="card">
+            <div className="card-header"><div className="card-title">Post Production Item</div></div>
+            <div className="card-body">
+              <div className="qitem-entry">
+                <div className="form-group" style={{ flex: 1.6 }}><label>Item</label>
+                  <input list="oo-deliverable-item-list" value={deliverableEntry.item_name}
+                    onChange={e => onPickDeliverableItem(e.target.value)} placeholder="Select / type item…" />
+                  <datalist id="oo-deliverable-item-list">
+                    {deliverableList.map(d => <option key={d.id} value={d.item_name} />)}
+                  </datalist></div>
+                <div className="form-group" style={{ width: 80 }}><label>Qnty</label>
+                  <input type="number" min={0} value={deliverableEntry.qnty} onChange={e => setDE('qnty', e.target.value)} /></div>
+                <div className="form-group" style={{ width: 110 }}><label>Amount</label>
+                  <input type="number" min={0} step="0.01" value={deliverableEntry.amount} onChange={e => setDE('amount', e.target.value)} /></div>
+                <div className="qitem-entry-btns">
+                  <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateDeliverable}>
+                    {editingDeliverableIndex === null ? <><Plus size={15} /> Add</> : 'Update'}
+                  </button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={cancelDeliverableEntry}>Cancel</button>
+                </div>
+              </div>
+              {deliverables.length > 0 && (
+                <div className="table-wrap" style={{ marginTop: 10 }}>
+                  <table className="data-table">
+                    <thead><tr><th>Item</th><th style={{ textAlign: 'center' }}>Qnty</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr></thead>
+                    <tbody>
+                      {deliverables.map((d, i) => (
+                        <tr key={i} style={editingDeliverableIndex === i ? { background: '#eff6ff' } : undefined}>
+                          <td>{d.item_name}</td>
+                          <td style={{ textAlign: 'center' }}>{d.qnty}</td>
+                          <td style={{ textAlign: 'right' }}>{cur(d.amount)}</td>
+                          <td>
+                            <div className="action-btns">
+                              <button className="btn-edit" onClick={() => editDeliverableRow(i)}><Pencil size={14} /></button>
+                              <button className="btn-danger-soft" onClick={() => delDeliverableRow(i)}><Trash2 size={14} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -359,6 +543,9 @@ export default function OutdoorOrderForm() {
           <div className="card-body">
             <div className="summary-box">
               <div className="summary-row"><span>Sub Total</span><strong>{cur(subTotal)}</strong></div>
+              {previousPending > 0 && (
+                <div className="summary-row"><span>Previous Pending</span><strong>{cur(previousPending)}</strong></div>
+              )}
               <div className="summary-row"><span>Discount</span>
                 <input type="number" min={0} value={form.discount} onChange={set('discount')}
                   style={{ width: 120, textAlign: 'right', padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
@@ -367,11 +554,21 @@ export default function OutdoorOrderForm() {
                   style={{ width: 120, textAlign: 'right', padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
               <div className="summary-row" style={{ fontSize: 15 }}>
                 <strong>Grand Total</strong><strong style={{ color: '#2563eb' }}>{cur(grandTotal)}</strong></div>
-              <div className="summary-row" style={{ borderBottom: 'none' }}>
+              <div className="summary-row" style={{ borderBottom: needsBank ? undefined : 'none' }}>
                 <span>Payment</span>
                 <select value={form.payment_mode} onChange={set('payment_mode')} className="form-select" style={{ width: 130 }}>
                   {PAYMENTS.map(p => <option key={p}>{p}</option>)}
                 </select></div>
+              {needsBank && (
+                <>
+                  <div className="summary-row"><span>Our Bank</span>
+                    <input value={form.bank_name} onChange={set('bank_name')} placeholder="Bank account name"
+                      style={{ width: 160, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
+                  <div className="summary-row" style={{ borderBottom: 'none' }}><span>Cheque No</span>
+                    <input value={form.cheque_no} onChange={set('cheque_no')}
+                      style={{ width: 160, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
+                </>
+              )}
             </div>
             <div className="summary-row" style={{ padding: '8px 0 0', color: pending > 0 ? '#dc2626' : '#16a34a' }}>
               <span>Pending</span><strong>{cur(pending)}</strong>
