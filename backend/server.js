@@ -30,6 +30,7 @@ app.use('/api/hire-orders',     require('./routes/hireOrders'));
 app.use('/api/attendance',      require('./routes/attendance'));
 app.use('/api/bookings',        require('./routes/bookings'));
 app.use('/api/payroll',         require('./routes/payroll'));
+app.use('/api/print-settings',  require('./routes/printSettings'));
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 

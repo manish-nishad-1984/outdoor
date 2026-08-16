@@ -23,6 +23,7 @@ import Attendance from './pages/hr/Attendance';
 import Payroll from './pages/hr/Payroll';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import PrintSettings from './pages/settings/PrintSettings';
 import Bookings from './pages/bookings/Bookings';
 import SaleForm from './pages/finance/SaleForm';
 import ItemMaster from './pages/masters/ItemMaster';
@@ -90,6 +91,7 @@ export default function App() {
 
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="print-settings" element={<PrintSettings />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

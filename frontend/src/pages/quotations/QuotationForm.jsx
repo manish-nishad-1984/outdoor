@@ -9,13 +9,16 @@ const EVENTS = ['Wedding','Reception','Engagement','Haldi','Mehndi','Sangeet',
   'Pre-Wedding','Ring Ceremony','Baby Shower','Birthday','Other'];
 
 // Print letterhead — matches the legacy Crystal Reports "Print(Rate)"/"Print(W/O Rate)"
-// output exactly (studio contact details + Terms & Condition text transcribed from the
-// client's sample PDF). Fixed for this deployment; edit here if the studio's details change.
-const STUDIO = {
+// output (studio contact details + Terms & Condition text transcribed from the client's
+// sample PDF). Used as a fallback until /print-settings (the web port of legacy
+// FrmPrintSettings.vb) loads — see printSettings state below, which is the live source.
+const DEFAULT_STUDIO = {
   name: 'Am Photo Studio',
   address: '324, 3 Floor, Angel Business Center, 1, Abc Cir, Mota Varachha, Surat,',
   phone: '+91 99097 96518',
   instagram: '@am_photo_studio_',
+  logo: '',
+  showLogo: false,
 };
 const TERMS = [
   '75% Payment Advance before Booking, 15% After Function, 10% Time Of Final Work Deliver.',
@@ -76,6 +79,7 @@ export default function QuotationForm() {
 
   const [saving, setSaving]   = useState(false);
   const [err, setErr]         = useState('');
+  const [studio, setStudio]   = useState(DEFAULT_STUDIO);
 
   // Reference data — mirrors FrmOutdoor_Load's Fill*Combo calls.
   useEffect(() => {
@@ -87,6 +91,18 @@ export default function QuotationForm() {
       const clientGroup = groups.find(g => (g.group_name || '').toUpperCase() === 'CLIENT');
       if (clientGroup) api.get('/accounts', { params: { group_id: clientGroup.id } })
         .then(r2 => setClientList(r2.data || [])).catch(() => {});
+    }).catch(() => {});
+    // Live letterhead source — legacy FrmPrintSettings.vb / OPT_PRINT via /print-settings.
+    api.get('/print-settings').then(r => {
+      const s = r.data || {};
+      setStudio({
+        name: s.company_name || DEFAULT_STUDIO.name,
+        address: s.address || DEFAULT_STUDIO.address,
+        phone: s.mobile_no || DEFAULT_STUDIO.phone,
+        instagram: s.insta_id || DEFAULT_STUDIO.instagram,
+        logo: s.logo_image || '',
+        showLogo: s.display_logo !== false && !!s.logo_image,
+      });
     }).catch(() => {});
   }, []);
 
@@ -323,6 +339,7 @@ export default function QuotationForm() {
         body{font-family:Arial,sans-serif;color:#111;padding:0;margin:0;font-size:12.5px;background:#f3f4f6}
         .sheet{max-width:800px;margin:16px auto;border:2px solid #16324f;border-radius:6px;overflow:hidden;background:#fff}
         .banner{position:relative;background:linear-gradient(120deg,#16324f 0%,#16324f 52%,#f2a541 52%,#f2a541 100%);color:#fff;padding:14px 20px 26px;text-align:center}
+        .banner-logo{position:absolute;left:16px;top:10px;max-height:50px;max-width:90px;object-fit:contain}
         .banner .studio-name{font-size:24px;font-weight:800;letter-spacing:.5px;margin:2px 0}
         .banner .studio-sub{font-size:11.5px;margin:2px 0}
         .banner-wave{position:absolute;left:0;right:0;bottom:-1px;height:22px;background:#fff;border-radius:50% 50% 0 0/100% 100% 0 0}
@@ -361,12 +378,13 @@ export default function QuotationForm() {
       </style></head><body>
       <div class="sheet">
         <div class="banner">
-          <div class="studio-name">${STUDIO.name}</div>
-          <div class="studio-sub">${STUDIO.address}</div>
-          <div class="studio-sub">MO:- ${STUDIO.phone}</div>
+          ${studio.showLogo ? `<img class="banner-logo" src="${studio.logo}" />` : ''}
+          <div class="studio-name">${studio.name}</div>
+          <div class="studio-sub">${studio.address}</div>
+          <div class="studio-sub">MO:- ${studio.phone}</div>
           <div class="banner-wave"></div>
         </div>
-        <div class="insta-row"><span>${STUDIO.instagram}</span><span>Quotation</span></div>
+        <div class="insta-row"><span>${studio.instagram}</span><span>Quotation</span></div>
         <div class="cust-row">
           <div class="cust-col">
             <div><b>Name :-</b> ${form.client_name || ''}</div>
@@ -404,7 +422,7 @@ export default function QuotationForm() {
         </div>
         <div class="terms">
           <div class="tc-title">Term &amp; Condition :</div>
-          <span class="signee">${STUDIO.name}</span>
+          <span class="signee">${studio.name}</span>
           <ol>${termsHtml}</ol>
         </div>
         <div class="sign-row">

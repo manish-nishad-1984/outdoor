@@ -8,56 +8,61 @@ import {
   BarChart2, Settings, LogOut, ChevronDown, ChevronRight, Layers, ListChecks
 } from 'lucide-react';
 
+// Group order/labels follow the legacy MainForm menu bar
+// (Master Setup, Outdoor, Transaction, Xpozing, Utility, Report) rather than a
+// re-invented IA — see legacy/docs/03-MIGRATION-MAP.md. Pages with no legacy menu
+// slot at all (Studio Orders, Bookings, Sales, HR, Design Jobs, Hire Orders) are
+// folded into whichever legacy section is the closest conceptual fit.
 const NAV = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard, exact: true },
   {
-    label: 'Orders', icon: Camera,
+    label: 'Master Setup', icon: Package,
     children: [
-      { to: '/outdoor-orders', label: 'Outdoor Orders', icon: Camera },
-      { to: '/studio-orders',  label: 'Studio Orders',  icon: Building2 },
-      { to: '/quotations',     label: 'Quotations',     icon: FileText },
-      { to: '/bookings',       label: 'Bookings',       icon: CalendarCheck },
+      { to: '/items',             label: 'Item Master',          icon: Package },
+      { to: '/events',            label: 'Event Master',         icon: CalendarCheck },
+      { to: '/accounts',          label: 'Account Master',       icon: BookOpen },
+      { to: '/account-groups',    label: 'Account Group',        icon: Layers },
+      { to: '/deliverable-items', label: 'Post Production Item', icon: ListChecks },
     ]
   },
   {
-    label: 'Sales & Finance', icon: ShoppingCart,
+    label: 'Outdoor', icon: Camera,
     children: [
-      { to: '/sales',     label: 'Sales / Invoices', icon: ShoppingCart },
-      { to: '/purchases', label: 'Purchases',         icon: Package },
-      { to: '/receipts',  label: 'Receipts',          icon: Receipt },
-      { to: '/payments',  label: 'Payments',          icon: CreditCard },
-      { to: '/outdoor-payments', label: 'Outdoor Party Payment', icon: CreditCard },
-      { to: '/accounts',  label: 'Accounts',          icon: BookOpen },
+      { to: '/quotations',       label: 'Quotation',              icon: FileText },
+      { to: '/outdoor-orders',   label: 'Order / Bill',           icon: Camera },
+      { to: '/studio-orders',    label: 'Studio Orders',          icon: Building2 },
+      { to: '/bookings',         label: 'Bookings',               icon: CalendarCheck },
+      { to: '/outdoor-payments', label: 'Outdoor Party Payment',  icon: CreditCard },
+      { to: '/receipts',         label: 'Receipt',                icon: Receipt },
     ]
   },
   {
-    label: 'Work', icon: Palette,
+    label: 'Transaction', icon: ShoppingCart,
     children: [
-      { to: '/design-jobs', label: 'Design Jobs',      icon: Palette },
+      { to: '/purchases', label: 'Purchase',      icon: Package },
+      { to: '/payments',  label: 'Party Payment',  icon: CreditCard },
+      { to: '/sales',     label: 'Sale',           icon: ShoppingCart },
+    ]
+  },
+  {
+    label: 'Xpozing', icon: Palette,
+    children: [
       { to: '/exposing',    label: 'Exposing / Print', icon: Printer },
+      { to: '/design-jobs', label: 'Design Jobs',      icon: Palette },
       { to: '/hire-orders', label: 'Hire Orders',      icon: Truck },
     ]
   },
   {
-    label: 'HR', icon: Users,
+    label: 'Utility', icon: Settings,
     children: [
+      { to: '/print-settings', label: 'Print Settings', icon: Printer },
       { to: '/employees',  label: 'Employees',  icon: Users },
       { to: '/attendance', label: 'Attendance', icon: Clock },
       { to: '/payroll',    label: 'Payroll',    icon: Wallet },
+      { to: '/settings',   label: 'Settings',   icon: Settings },
     ]
   },
-  {
-    label: 'Masters', icon: Package,
-    children: [
-      { to: '/items', label: 'Item Master', icon: Package },
-      { to: '/events', label: 'Event Master', icon: CalendarCheck },
-      { to: '/account-groups', label: 'Account Group', icon: Layers },
-      { to: '/accounts', label: 'Account Master', icon: BookOpen },
-      { to: '/deliverable-items', label: 'Post Production Item', icon: ListChecks },
-    ]
-  },
-  { label: 'Reports',  to: '/reports',  icon: BarChart2 },
-  { label: 'Settings', to: '/settings', icon: Settings },
+  { label: 'Report', to: '/reports', icon: BarChart2 },
 ];
 
 function isGroupActive(group, pathname) {
