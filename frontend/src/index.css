@@ -1,3 +1,9 @@
+/* Tailwind utilities only — Preflight (its base-element reset) is intentionally skipped so
+   it doesn't clash with the existing hand-rolled design system below, which every other page
+   in this app still relies on untouched. Tailwind classes are additive/opt-in per page. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f3f4f6; color: #111827; font-size: 13px; }
