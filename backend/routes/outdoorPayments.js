@@ -115,6 +115,35 @@ router.post('/', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /by-trans-no/:transNo — lookup an existing payment for edit
+router.get('/by-trans-no/:transNo', auth, async (req, res) => {
+  await init;
+  try {
+    const r = await pool.query('SELECT * FROM outdoor_payments WHERE trans_no=$1 ORDER BY id DESC LIMIT 1', [req.params.transNo]);
+    if (!r.rows[0]) return res.status(404).json({ error: 'Not found' });
+    res.json(r.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PUT /:id — update an existing payment
+router.put('/:id', auth, async (req, res) => {
+  await init;
+  try {
+    const b = req.body;
+    if (!b.party_name) return res.status(400).json({ error: 'Outdoor party required' });
+    if (!b.amount || Number(b.amount) <= 0) return res.status(400).json({ error: 'Amount must be greater than 0' });
+    const r = await pool.query(`
+      UPDATE outdoor_payments SET
+        pay_date=$1, party_name=$2, contact_no=$3, address=$4, outdoor_order_id=$5,
+        payment_type=$6, amount=$7, remark=$8, updated_by=$9
+      WHERE id=$10 RETURNING *`,
+      [b.pay_date || new Date(), b.party_name, b.contact_no || '', b.address || '',
+       b.outdoor_order_id || null, b.payment_type || 'CASH', b.amount, b.remark || '', req.user.id, req.params.id]);
+    if (!r.rows[0]) return res.status(404).json({ error: 'Not found' });
+    res.json(r.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // DELETE /:id
 router.delete('/:id', auth, async (req, res) => {
   await init;

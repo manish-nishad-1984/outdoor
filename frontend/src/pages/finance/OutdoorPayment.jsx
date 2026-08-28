@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Save, Trash2, Printer, X, LogOut, Send } from 'lucide-react';
+import { Save, Trash2, Printer, X, LogOut, Send, Search } from 'lucide-react';
 import api from '../../api/axios';
 
 const PAYMENT_TYPES = ['CASH', 'UPI', 'CHEQUE', 'CARD', 'BANK TRANSFER'];
@@ -17,6 +17,7 @@ export default function OutdoorPayment() {
   const [saving, setSaving]   = useState(false);
   const [err, setErr]         = useState('');
   const [msg, setMsg]         = useState('');
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     api.get('/outdoor-payments/parties').then(r => setParties(r.data || [])).catch(() => {});
@@ -47,16 +48,45 @@ export default function OutdoorPayment() {
     setForm(f => ({ ...f, trans_no: n.data.next, amount: '', remark: '', outdoor_order_id: '' }));
   };
 
+  const loadByTransNo = async () => {
+    if (!form.trans_no) return;
+    setErr(''); setMsg('');
+    try {
+      const r = await api.get(`/outdoor-payments/by-trans-no/${form.trans_no}`);
+      const p = r.data;
+      setEditingId(p.id);
+      setForm(f => ({
+        ...f,
+        trans_no: p.trans_no,
+        pay_date: (p.pay_date || '').slice(0, 10) || today(),
+        party_name: p.party_name, contact_no: p.contact_no || '', address: p.address || '',
+        outdoor_order_id: p.outdoor_order_id || '', payment_type: p.payment_type || 'CASH',
+        amount: p.amount, remark: p.remark || '',
+      }));
+      loadDetail(p.party_name);
+      setMsg(`Loaded payment #${p.trans_no} for edit`);
+    } catch (ex) {
+      setErr(ex.response?.status === 404 ? `No payment found with Trans No ${form.trans_no}` : 'Lookup failed');
+    }
+  };
+
   const save = async () => {
     if (!form.party_name) { setErr('Select an outdoor party'); return; }
     if (!form.amount || Number(form.amount) <= 0) { setErr('Enter a valid amount'); return; }
     setSaving(true); setErr(''); setMsg('');
     try {
-      await api.post('/outdoor-payments', {
+      const payload = {
         ...form, amount: Number(form.amount),
         outdoor_order_id: form.outdoor_order_id ? Number(form.outdoor_order_id) : null,
-      });
-      setMsg('Payment saved');
+      };
+      if (editingId) {
+        await api.put(`/outdoor-payments/${editingId}`, payload);
+        setMsg('Payment updated');
+      } else {
+        await api.post('/outdoor-payments', payload);
+        setMsg('Payment saved');
+      }
+      setEditingId(null);
       await refreshAfterSave();
     } catch (ex) { setErr(ex.response?.data?.error || 'Save failed'); }
     finally { setSaving(false); }
@@ -65,10 +95,28 @@ export default function OutdoorPayment() {
   const delPayment = async (id) => {
     if (!confirm('Delete this payment?')) return;
     await api.delete(`/outdoor-payments/${id}`);
+    if (id === editingId) {
+      setEditingId(null); reset();
+      const n = await api.get('/outdoor-payments/next-no');
+      setForm(f => ({ ...f, trans_no: n.data.next }));
+      return;
+    }
     loadDetail(form.party_name);
   };
 
+  const deleteCurrent = async () => {
+    if (!editingId) { setErr('Load an existing payment by Trans No first'); return; }
+    if (!confirm('Delete this payment?')) return;
+    await api.delete(`/outdoor-payments/${editingId}`);
+    setMsg('Payment deleted');
+    setEditingId(null);
+    reset();
+    const n = await api.get('/outdoor-payments/next-no');
+    setForm(f => ({ ...f, trans_no: n.data.next }));
+  };
+
   const reset = () => {
+    setEditingId(null);
     setForm(f => ({ ...f, party_name: '', contact_no: '', address: '', outdoor_order_id: '', amount: '', remark: '' }));
     setBills([]); setPayments([]); setSummary({ order_total: 0, total_paid: 0, total_pending: 0 });
     setErr(''); setMsg('');
@@ -115,7 +163,7 @@ export default function OutdoorPayment() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Outdoor Party Payment Detail</h1>
-          <p className="page-subtitle">Trans No {form.trans_no}</p>
+          <p className="page-subtitle">Trans No {form.trans_no}{editingId ? ' — editing existing payment' : ''}</p>
         </div>
       </div>
 
@@ -126,8 +174,13 @@ export default function OutdoorPayment() {
       <div className="card">
         <div className="card-body form-grid">
           <div className="form-group">
-            <label>Trans No</label>
-            <input value={form.trans_no} readOnly style={{ background: '#eff6ff', fontWeight: 700 }} />
+            <label>Trans No {editingId && <span className="badge badge-blue" style={{ marginLeft: 6 }}>Editing</span>}</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input value={form.trans_no} onChange={set('trans_no')} style={{ background: '#eff6ff', fontWeight: 700, flex: 1 }} />
+              <button type="button" className="btn btn-outline btn-icon" title="Load payment by Trans No" onClick={loadByTransNo}>
+                <Search size={14} />
+              </button>
+            </div>
           </div>
           <div className="form-group">
             <label>Date</label>
@@ -255,8 +308,8 @@ export default function OutdoorPayment() {
 
       {/* Action bar */}
       <div className="quotation-actions">
-        <button className="btn btn-primary" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
-        <button className="btn btn-danger"  onClick={reset}><Trash2 size={15} /> Delete</button>
+        <button className="btn btn-primary" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : editingId ? 'Update' : 'Save'}</button>
+        <button className="btn btn-danger"  onClick={deleteCurrent} disabled={!editingId}><Trash2 size={15} /> Delete</button>
         <button className="btn btn-outline" onClick={doPrint}><Printer size={15} /> Print</button>
         <button className="btn btn-ghost"   onClick={reset}><X size={15} /> Cancel</button>
         <button className="btn btn-ghost"   onClick={reset}><LogOut size={15} /> Exit</button>

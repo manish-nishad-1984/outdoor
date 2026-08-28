@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Camera, Building2, FileText, CalendarCheck,
   ShoppingCart, Package, Receipt, CreditCard, BookOpen,
   Palette, Printer, Truck, Users, Clock, Wallet, UserPlus, ShieldCheck,
-  BarChart2, Settings, LogOut, ChevronDown, ChevronRight, Layers, ListChecks
+  BarChart2, Settings, LogOut, ChevronDown, ChevronRight, Layers, ListChecks, MessageCircle, Percent
 } from 'lucide-react';
 
 // Group order/labels follow the legacy MainForm menu bar
@@ -56,6 +56,8 @@ const NAV = [
     label: 'Utility', icon: Settings,
     children: [
       { to: '/print-settings', label: 'Print Settings', icon: Printer },
+      { to: '/whatsapp-setting', label: 'WhatsApp Setting', icon: MessageCircle },
+      { to: '/gst-settings', label: 'GST Settings', icon: Percent },
       { to: '/user-creation',  label: 'User Creation',  icon: UserPlus },
       { to: '/user-permission', label: 'User Permission', icon: ShieldCheck },
       { to: '/employees',  label: 'Employees',  icon: Users },

@@ -24,6 +24,8 @@ import Payroll from './pages/hr/Payroll';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import PrintSettings from './pages/settings/PrintSettings';
+import WhatsAppSetting from './pages/settings/WhatsAppSetting';
+import GstSettings from './pages/settings/GstSettings';
 import UserCreation from './pages/settings/UserCreation';
 import UserPermission from './pages/settings/UserPermission';
 import Bookings from './pages/bookings/Bookings';
@@ -94,6 +96,8 @@ export default function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
             <Route path="print-settings" element={<PrintSettings />} />
+            <Route path="whatsapp-setting" element={<WhatsAppSetting />} />
+            <Route path="gst-settings" element={<GstSettings />} />
             <Route path="user-creation" element={<UserCreation />} />
             <Route path="user-permission" element={<UserPermission />} />
 
