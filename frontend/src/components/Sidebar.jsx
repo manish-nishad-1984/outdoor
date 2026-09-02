@@ -13,7 +13,7 @@ import {
 // re-invented IA — see legacy/docs/03-MIGRATION-MAP.md. Pages with no legacy menu
 // slot at all (Studio Orders, Bookings, Sales, HR, Design Jobs, Hire Orders) are
 // folded into whichever legacy section is the closest conceptual fit.
-const NAV = [
+export const NAV = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard, exact: true },
   {
     label: 'Master Setup', icon: Package,
