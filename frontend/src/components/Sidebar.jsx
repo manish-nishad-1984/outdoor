@@ -122,16 +122,29 @@ export default function Sidebar() {
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       {/* Logo */}
       <div className="sidebar-logo">
-        {!collapsed && (
-          <div className="logo-text">
-            <span className="logo-main">OutdoorStudio</span>
-            <span className="logo-sub">Management System</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, overflow: 'hidden' }}>
+          <div className="bg-primary text-primary-foreground" style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Camera size={16} strokeWidth={2} />
           </div>
+          {!collapsed && (
+            <div className="logo-text">
+              <span className="logo-main">OutdoorStudio</span>
+              <span className="logo-sub">Management System</span>
+            </div>
+          )}
+        </div>
+        {!collapsed && (
+          <button className="sidebar-toggle" onClick={() => setCollapsed(c => !c)} title={collapsed ? 'Expand' : 'Collapse'}>
+            <ChevronRight size={14} style={{ transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.2s' }} />
+          </button>
         )}
-        <button className="sidebar-toggle" onClick={() => setCollapsed(c => !c)} title={collapsed ? 'Expand' : 'Collapse'}>
-          <ChevronRight size={14} style={{ transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.2s' }} />
-        </button>
       </div>
+      {collapsed && (
+        <button className="sidebar-toggle" onClick={() => setCollapsed(c => !c)} title="Expand"
+          style={{ margin: '8px auto 4px', display: 'flex' }}>
+          <ChevronRight size={14} style={{ transform: 'rotate(0deg)', transition: 'transform 0.2s' }} />
+        </button>
+      )}
 
       {/* Nav */}
       <nav className="sidebar-nav">

@@ -37,6 +37,7 @@ export default function Accounts() {
   const [items, setItems]       = useState([]);
   const [search, setSearch]     = useState('');
   const [groupFilter, setGroupFilter] = useState('');
+  const [page, setPage]         = useState(1);
   const [loading, setLoading]   = useState(false);
   const [modal, setModal]       = useState(null); // null | 'new' | row
   const [form, setForm]         = useState(EMPTY);
@@ -91,6 +92,10 @@ export default function Accounts() {
   const panel = panelFor(selectedGroupName);
   const isParty = panel === 'party' || panel === 'party-extra' || panel === 'party-limit';
 
+  const PAGE_SIZE = 25;
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -106,9 +111,9 @@ export default function Accounts() {
             <div className="search-box">
               <Search size={15} className="search-icon"/>
               <input placeholder="Search by name, mobile..." value={search}
-                onChange={e => setSearch(e.target.value)} />
+                onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
-            <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} style={{ maxWidth: 200 }}>
+            <select value={groupFilter} onChange={e => { setGroupFilter(e.target.value); setPage(1); }} style={{ maxWidth: 200 }}>
               <option value="">All Groups</option>
               {groups.map(g => <option key={g.id} value={g.id}>{g.group_name}</option>)}
             </select>
@@ -123,7 +128,7 @@ export default function Accounts() {
                 </tr></thead>
                 <tbody>
                   {rows.length === 0 && <tr><td colSpan={7} className="table-empty"><BookOpen size={32}/><p>No accounts found</p></td></tr>}
-                  {rows.map(r => (
+                  {pageRows.map(r => (
                     <tr key={r.id}>
                       <td>{r.group_name || '-'}</td>
                       <td><strong>{r.account_name}</strong></td>
@@ -141,6 +146,13 @@ export default function Accounts() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {rows.length > PAGE_SIZE && (
+            <div className="pagination">
+              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
+              <span>Page {page} of {pageCount}</span>
+              <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
             </div>
           )}
         </div>

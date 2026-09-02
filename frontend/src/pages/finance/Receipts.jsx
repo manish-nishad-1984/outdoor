@@ -8,6 +8,7 @@ export default function Receipts() {
   const [data, setData]     = useState([]);
   const [total, setTotal]   = useState(0);
   const [search, setSearch] = useState('');
+  const [page, setPage]     = useState(1);
   const [loading, setLoading] = useState(true);
   const [modal, setModal]   = useState(false);
   const [form, setForm]     = useState(EMPTY);
@@ -16,11 +17,11 @@ export default function Receipts() {
 
   const load = useCallback(() => {
     setLoading(true);
-    api.get('/receipts', { params: { search } })
+    api.get('/receipts', { params: { search, page, limit: 25 } })
       .then(r => { setData(r.data.data || []); setTotal(r.data.total || 0); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [search]);
+  }, [search, page]);
 
   useEffect(() => { const t = setTimeout(load, 400); return () => clearTimeout(t); }, [load]);
 
@@ -78,7 +79,7 @@ export default function Receipts() {
           <div className="table-toolbar">
             <div className="search-box">
               <Search size={15} className="search-icon"/>
-              <input placeholder="Search client, receipt no..." value={search} onChange={e => setSearch(e.target.value)} />
+              <input placeholder="Search client, receipt no..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
             <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Receipt</button>
           </div>
@@ -103,6 +104,13 @@ export default function Receipts() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {total > 25 && (
+            <div className="pagination">
+              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
+              <span>Page {page} of {Math.ceil(total/25)}</span>
+              <button disabled={page>=Math.ceil(total/25)} onClick={() => setPage(p=>p+1)}>Next</button>
             </div>
           )}
         </div>

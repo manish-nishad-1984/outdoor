@@ -8,6 +8,7 @@ export default function DeliverableItems() {
   const [rows, setRows]       = useState([]);
   const [types, setTypes]     = useState([]);
   const [search, setSearch]   = useState('');
+  const [page, setPage]       = useState(1);
   const [loading, setLoading] = useState(false);
   const [modal, setModal]     = useState(null); // null | 'new' | row
   const [form, setForm]       = useState(EMPTY);
@@ -57,6 +58,10 @@ export default function DeliverableItems() {
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
+  const PAGE_SIZE = 25;
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -72,7 +77,7 @@ export default function DeliverableItems() {
             <div className="search-box">
               <Search size={15} className="search-icon"/>
               <input placeholder="Search by item name, type..." value={search}
-                onChange={e => setSearch(e.target.value)} />
+                onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
             <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16}/> New Item</button>
           </div>
@@ -84,7 +89,7 @@ export default function DeliverableItems() {
                 </tr></thead>
                 <tbody>
                   {rows.length === 0 && <tr><td colSpan={4} className="table-empty"><ListChecks size={32}/><p>No items found</p></td></tr>}
-                  {rows.map(r => (
+                  {pageRows.map(r => (
                     <tr key={r.id}>
                       <td><strong>{r.item_name}</strong></td>
                       <td>{r.qnty ?? 0}</td>
@@ -99,6 +104,13 @@ export default function DeliverableItems() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {rows.length > PAGE_SIZE && (
+            <div className="pagination">
+              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
+              <span>Page {page} of {pageCount}</span>
+              <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
             </div>
           )}
         </div>

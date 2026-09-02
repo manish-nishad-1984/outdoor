@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  Camera, Wallet, CheckCircle2, Clock, TrendingUp, Zap, PieChart,
+  Receipt, FileText, BarChart2,
+} from 'lucide-react';
 import api from '../api/axios';
 
 const chartData = [
@@ -21,7 +25,7 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon orange">📸</div>
+          <div className="stat-icon orange"><Camera size={20} strokeWidth={2} /></div>
           <div>
             <div className="stat-label">Monthly Orders</div>
             <div className="stat-value">{stats?.orders?.total ?? '—'}</div>
@@ -29,7 +33,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon green">💰</div>
+          <div className="stat-icon green"><Wallet size={20} strokeWidth={2} /></div>
           <div>
             <div className="stat-label">Monthly Revenue</div>
             <div className="stat-value">₹{stats ? Number(stats.monthly_sales).toLocaleString('en-IN') : '—'}</div>
@@ -37,7 +41,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon blue">✅</div>
+          <div className="stat-icon blue"><CheckCircle2 size={20} strokeWidth={2} /></div>
           <div>
             <div className="stat-label">Collected</div>
             <div className="stat-value">₹{stats ? Number(stats.monthly_receipts).toLocaleString('en-IN') : '—'}</div>
@@ -45,7 +49,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon red">⏳</div>
+          <div className="stat-icon red"><Clock size={20} strokeWidth={2} /></div>
           <div>
             <div className="stat-label">Pending Amount</div>
             <div className="stat-value">₹{stats ? Number(stats.pending_amount).toLocaleString('en-IN') : '—'}</div>
@@ -58,7 +62,7 @@ export default function Dashboard() {
         {/* Chart */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">📈 Monthly Revenue</div>
+            <div className="card-title"><TrendingUp size={16} strokeWidth={2} /> Monthly Revenue</div>
             <span className="badge badge-green">2026</span>
           </div>
           <div className="card-body">
@@ -67,7 +71,7 @@ export default function Dashboard() {
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `₹${v/1000}k`} />
                 <Tooltip formatter={v => [`₹${v.toLocaleString('en-IN')}`, 'Revenue']} />
-                <Bar dataKey="revenue" fill="#f97316" radius={[6,6,0,0]} />
+                <Bar dataKey="revenue" fill="#d77e09" radius={[6,6,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -76,18 +80,18 @@ export default function Dashboard() {
         {/* Quick Links */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="card">
-            <div className="card-header"><div className="card-title">⚡ Quick Actions</div></div>
+            <div className="card-header"><div className="card-title"><Zap size={16} strokeWidth={2} /> Quick Actions</div></div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Link to="/outdoor-orders/new" className="btn btn-primary" style={{ justifyContent: 'flex-start' }}>📸 New Outdoor Order</Link>
-              <Link to="/sales/new"          className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>🧾 New Sales Invoice</Link>
-              <Link to="/receipts"           className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>💰 Add Receipt</Link>
-              <Link to="/quotations/new"     className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>📋 New Quotation</Link>
-              <Link to="/reports"            className="btn btn-outline" style={{ justifyContent: 'flex-start' }}>📊 View Reports</Link>
+              <Link to="/outdoor-orders/new" className="btn btn-primary" style={{ justifyContent: 'flex-start' }}><Camera size={15} /> New Outdoor Order</Link>
+              <Link to="/sales/new"          className="btn btn-outline" style={{ justifyContent: 'flex-start' }}><Receipt size={15} /> New Sales Invoice</Link>
+              <Link to="/receipts"           className="btn btn-outline" style={{ justifyContent: 'flex-start' }}><Wallet size={15} /> Add Receipt</Link>
+              <Link to="/quotations/new"     className="btn btn-outline" style={{ justifyContent: 'flex-start' }}><FileText size={15} /> New Quotation</Link>
+              <Link to="/reports"            className="btn btn-outline" style={{ justifyContent: 'flex-start' }}><BarChart2 size={15} /> View Reports</Link>
             </div>
           </div>
 
           <div className="card">
-            <div className="card-header"><div className="card-title">📊 Order Status</div></div>
+            <div className="card-header"><div className="card-title"><PieChart size={16} strokeWidth={2} /> Order Status</div></div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
                 { label: 'In Progress', value: stats?.orders?.in_progress ?? 0, color: '#f97316', pct: 45 },

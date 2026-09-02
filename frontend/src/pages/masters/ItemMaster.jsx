@@ -10,6 +10,7 @@ const EMPTY = {
 export default function ItemMaster() {
   const [rows, setRows]       = useState([]);
   const [search, setSearch]   = useState('');
+  const [page, setPage]       = useState(1);
   const [loading, setLoading] = useState(false);
   const [modal, setModal]     = useState(null); // null | 'new' | row
   const [form, setForm]       = useState(EMPTY);
@@ -58,6 +59,10 @@ export default function ItemMaster() {
   const cur   = n => n != null ? `₹${parseFloat(n).toLocaleString('en-IN')}` : '-';
   const flag  = v => v ? <Check size={15} className="flag-yes" /> : <span className="flag-no">–</span>;
 
+  const PAGE_SIZE = 25;
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -73,7 +78,7 @@ export default function ItemMaster() {
             <div className="search-box">
               <Search size={15} className="search-icon"/>
               <input placeholder="Search by item name, HSN code..." value={search}
-                onChange={e => setSearch(e.target.value)} />
+                onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
             <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16}/> New Item</button>
           </div>
@@ -90,7 +95,7 @@ export default function ItemMaster() {
                 </tr></thead>
                 <tbody>
                   {rows.length === 0 && <tr><td colSpan={8} className="table-empty"><Package size={32}/><p>No items found</p></td></tr>}
-                  {rows.map(r => (
+                  {pageRows.map(r => (
                     <tr key={r.id}>
                       <td><strong>{r.item_name}</strong></td>
                       <td>{r.hsn_code||'0'}</td>
@@ -109,6 +114,13 @@ export default function ItemMaster() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {rows.length > PAGE_SIZE && (
+            <div className="pagination">
+              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
+              <span>Page {page} of {pageCount}</span>
+              <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
             </div>
           )}
         </div>

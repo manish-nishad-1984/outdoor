@@ -1,5 +1,10 @@
 import { Outlet, useLocation } from 'react-router-dom';
+import { Sun, Moon, Monitor } from 'lucide-react';
 import Sidebar from './Sidebar';
+import { useTheme } from '../context/ThemeContext';
+
+const THEME_ICON = { light: Sun, dark: Moon, system: Monitor };
+const THEME_LABEL = { light: 'Light', dark: 'Dark', system: 'System' };
 
 const titles = {
   '/': 'Dashboard',
@@ -10,7 +15,7 @@ const titles = {
   '/sales': 'Sales / Invoices',
   '/purchases': 'Purchases',
   '/receipts': 'Receipts',
-  '/payments': 'Payments',
+  '/payments': 'Party Payment',
   '/accounts': 'Account Master',
   '/design-jobs': 'Design Jobs',
   '/exposing': 'Exposing / Print',
@@ -30,6 +35,8 @@ export default function Layout() {
   const location = useLocation();
   const base = '/' + location.pathname.split('/')[1];
   const title = titles[base] || 'OutdoorStudio';
+  const { preference, cycleTheme } = useTheme();
+  const ThemeIcon = THEME_ICON[preference];
 
   return (
     <div className="layout">
@@ -38,6 +45,16 @@ export default function Layout() {
         <header className="topbar">
           <div className="topbar-left">
             <div className="page-title">{title}</div>
+          </div>
+          <div className="topbar-right">
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={cycleTheme}
+              title={`Theme: ${THEME_LABEL[preference]} (click to change)`}
+            >
+              <ThemeIcon size={16} />
+            </button>
           </div>
         </header>
         <div className="content">

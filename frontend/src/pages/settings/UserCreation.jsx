@@ -11,6 +11,7 @@ const EMPTY = { id: null, user_type: 'ADMINISTRATOR', username: '', password: ''
 export default function UserCreation() {
   const { user: me } = useAuth();
   const [users, setUsers]     = useState([]);
+  const [page, setPage]       = useState(1);
   const [loading, setLoading] = useState(true);
   const [form, setForm]       = useState(EMPTY);
   const [editMode, setEditMode] = useState(false);
@@ -74,6 +75,10 @@ export default function UserCreation() {
     }
   };
 
+  const PAGE_SIZE = 25;
+  const pageCount = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const pageUsers = users.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -127,19 +132,27 @@ export default function UserCreation() {
                     {users.length === 0 && (
                       <tr><td colSpan={3} className="table-empty"><p>No users found</p></td></tr>
                     )}
-                    {users.map((u, i) => (
+                    {pageUsers.map((u, i) => (
                       <tr
                         key={u.id}
                         onClick={() => selectRow(u)}
-                        style={{ cursor: 'pointer', background: form.id === u.id ? '#dbeafe' : undefined }}
+                        className={form.id === u.id ? 'bg-accent' : undefined}
+                        style={{ cursor: 'pointer' }}
                       >
-                        <td>{i + 1}</td>
+                        <td>{(page - 1) * PAGE_SIZE + i + 1}</td>
                         <td>{u.user_type}{me?.id === u.id ? ' (you)' : ''}</td>
                         <td>{u.username}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {users.length > PAGE_SIZE && (
+              <div className="pagination">
+                <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
+                <span>Page {page} of {pageCount}</span>
+                <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
               </div>
             )}
           </div>

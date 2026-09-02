@@ -7,6 +7,7 @@ const EMPTY = { event_name: '', not_use: false };
 export default function EventMaster() {
   const [rows, setRows]       = useState([]);
   const [search, setSearch]   = useState('');
+  const [page, setPage]       = useState(1);
   const [loading, setLoading] = useState(false);
   const [modal, setModal]     = useState(null); // null | 'new' | row
   const [form, setForm]       = useState(EMPTY);
@@ -46,6 +47,10 @@ export default function EventMaster() {
   const set   = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const flag  = v => v ? <Check size={15} className="flag-yes" /> : <span className="flag-no">–</span>;
 
+  const PAGE_SIZE = 25;
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -61,7 +66,7 @@ export default function EventMaster() {
             <div className="search-box">
               <Search size={15} className="search-icon"/>
               <input placeholder="Search event name..." value={search}
-                onChange={e => setSearch(e.target.value)} />
+                onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
             <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16}/> New Event</button>
           </div>
@@ -75,7 +80,7 @@ export default function EventMaster() {
                 </tr></thead>
                 <tbody>
                   {rows.length === 0 && <tr><td colSpan={3} className="table-empty"><CalendarCheck size={32}/><p>No events found</p></td></tr>}
-                  {rows.map(r => (
+                  {pageRows.map(r => (
                     <tr key={r.id}>
                       <td><strong>{r.event_name}</strong></td>
                       <td style={{textAlign:'center'}}>{flag(r.not_use)}</td>
@@ -89,6 +94,13 @@ export default function EventMaster() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {rows.length > PAGE_SIZE && (
+            <div className="pagination">
+              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
+              <span>Page {page} of {pageCount}</span>
+              <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
             </div>
           )}
         </div>
