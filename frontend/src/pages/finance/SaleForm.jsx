@@ -214,12 +214,12 @@ export default function SaleForm() {
                   <label key={item} style={{
                     display:'flex',alignItems:'center',gap:6,cursor:'pointer',
                     padding:'5px 10px',borderRadius:6,fontSize:12,fontWeight:500,
-                    border:`1px solid ${form.wedding_items.includes(item)?'#2563eb':'#e5e7eb'}`,
-                    background: form.wedding_items.includes(item)?'#eff6ff':'#f9fafb',
-                    color: form.wedding_items.includes(item)?'#1d4ed8':'#374151'
+                    border:`1px solid ${form.wedding_items.includes(item)?'hsl(var(--primary))':'#e5e7eb'}`,
+                    background: form.wedding_items.includes(item)?'hsl(var(--accent))':'#f9fafb',
+                    color: form.wedding_items.includes(item)?'hsl(var(--accent-foreground))':'#374151'
                   }}>
                     <input type="checkbox" checked={form.wedding_items.includes(item)}
-                      onChange={()=>toggleWedding(item)} style={{accentColor:'#2563eb'}}/>
+                      onChange={()=>toggleWedding(item)} style={{accentColor:'hsl(var(--primary))'}}/>
                     {item}
                   </label>
                 ))}

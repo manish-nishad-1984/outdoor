@@ -96,7 +96,7 @@ export default function DesignJobs() {
       <div className="stats-grid">
         <div className="stat-card card-accent"><div className="stat-label">TOTAL</div><div className="stat-value">{stats.total||0}</div></div>
         <div className="stat-card"><div className="stat-label">PENDING</div><div className="stat-value" style={{color:'#d97706'}}>{stats.pending||0}</div></div>
-        <div className="stat-card"><div className="stat-label">IN PROGRESS</div><div className="stat-value" style={{color:'#2563eb'}}>{stats.in_progress||0}</div></div>
+        <div className="stat-card"><div className="stat-label">IN PROGRESS</div><div className="stat-value" style={{color:'hsl(var(--primary))'}}>{stats.in_progress||0}</div></div>
         <div className="stat-card"><div className="stat-label">COMPLETED</div><div className="stat-value" style={{color:'#16a34a'}}>{stats.completed||0}</div></div>
       </div>
 

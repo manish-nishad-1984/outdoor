@@ -79,7 +79,7 @@ export default function Exposing() {
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card card-accent"><div className="stat-label">TOTAL JOBS</div><div className="stat-value">{stats.total||0}</div></div>
-        <div className="stat-card"><div className="stat-label">PHOTOS</div><div className="stat-value" style={{color:'#2563eb'}}>{stats.photos||0}</div></div>
+        <div className="stat-card"><div className="stat-label">PHOTOS</div><div className="stat-value" style={{color:'hsl(var(--primary))'}}>{stats.photos||0}</div></div>
         <div className="stat-card"><div className="stat-label">ALBUM</div><div className="stat-value" style={{color:'#7c3aed'}}>{stats.album||0}</div></div>
         <div className="stat-card"><div className="stat-label">TOTAL VALUE</div><div className="stat-value" style={{color:'#16a34a'}}>{cur(stats.total_value)}</div></div>
       </div>

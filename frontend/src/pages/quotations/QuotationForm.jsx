@@ -80,6 +80,10 @@ export default function QuotationForm() {
   const [saving, setSaving]   = useState(false);
   const [err, setErr]         = useState('');
   const [studio, setStudio]   = useState(DEFAULT_STUDIO);
+  // Live preview — lets staff proofread the actual client-facing document as they build the
+  // quotation, instead of only seeing it after Print. Entry stays row-plus-Add-button; this
+  // is purely a read-only mirror of items/deliverables/totals.
+  const [showRates, setShowRates] = useState(true);
 
   // Reference data — mirrors FrmOutdoor_Load's Fill*Combo calls.
   useEffect(() => {
@@ -451,6 +455,24 @@ export default function QuotationForm() {
         </div>
       </div>
 
+      {/* Action bar — moved to the top so Save/Print/WhatsApp/etc are visible without
+          scrolling past the whole form first. */}
+      <div className="quotation-actions">
+        <button className="btn btn-primary"  onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
+        <button className="btn btn-danger"   onClick={remove}><Trash2 size={15} /> Delete</button>
+        <button className="btn btn-outline"  onClick={() => doPrint(true)}><Printer size={15} /> Print (Rate)</button>
+        <button className="btn btn-outline"  onClick={() => doPrint(false)}><Printer size={15} /> Print (W/O Rate)</button>
+        {/* Cancel resets to a blank new quotation (matches legacy CmdCancel); Exit leaves
+            the module entirely (matches legacy CmdExit / Me.Close()) — previously identical. */}
+        <button className="btn btn-ghost"    onClick={() => nav('/quotations/new')}><X size={15} /> Cancel</button>
+        <button className="btn btn-ghost"    onClick={() => nav('/quotations')}><LogOut size={15} /> Exit</button>
+        {/* Matches legacy's dedicated PDF export button on the report viewer toolbar — no
+            server-side PDF engine on the web, so this reuses the W/O Rate print letterhead
+            and relies on the browser's print dialog "Save as PDF" destination. */}
+        <button className="btn btn-outline"  onClick={() => doPrint(false)}><FileDown size={15} /> PDF</button>
+        <button className="btn btn-outline"  onClick={openWhatsApp}><Send size={15} /> WhatsApp</button>
+      </div>
+
       {err && <div className="alert alert-error" style={{ marginBottom: 12 }}>{err}</div>}
       {clientInfo?.over_limit && (
         <div className="alert alert-error" style={{ marginBottom: 12 }}>
@@ -458,13 +480,14 @@ export default function QuotationForm() {
         </div>
       )}
 
-      <div className="page-cols" style={{ gridTemplateColumns: '2.4fr 1fr', gap: 8 }}>
+      <div className="page-cols" style={{ gridTemplateColumns: '2.4fr 1fr' }}>
         {/* Header details */}
         <div className="card">
+          <div className="card-header"><div className="card-title">Client &amp; Event Details</div></div>
           <div className="card-body form-grid">
             <div className="form-group">
               <label>Quo No</label>
-              <input value={form.quo_no} readOnly style={{ background: '#eff6ff', fontWeight: 700 }} />
+              <input value={form.quo_no} readOnly style={{ background: 'hsl(var(--accent))', fontWeight: 700 }} />
             </div>
             <div className="form-group">
               <label>Date</label>
@@ -523,15 +546,21 @@ export default function QuotationForm() {
         </div>
       </div>
 
-      {/* Item entry row */}
-      <div className="card" style={{ marginTop: 8 }}>
+      <div className="quo-split" style={{ marginTop: 16 }}>
+      <div className="quo-work">
+
+      {/* Item entry row — tinted "entry panel" so it reads as distinct from the plain
+          white display/grid cards around it, with Add/Update set apart below a divider
+          instead of crammed onto the same line as the inputs. */}
+      <div className="card card-entry">
+        <div className="card-header"><div className="card-title">Add Item</div></div>
         <div className="card-body">
-          <div className="qitem-entry">
+          <div className="entry-grid">
             <div className="form-group">
               <label>Function Date</label>
               <input type="date" value={entry.function_date} onChange={e => setE('function_date', e.target.value)} />
             </div>
-            <div className="form-group" style={{ flex: 1.6 }}>
+            <div className="form-group wide">
               <label>Item Name</label>
               <input list="item-master-list" value={entry.item_name}
                 onChange={e => onPickItem(e.target.value)} placeholder="Select / type item…" />
@@ -539,7 +568,7 @@ export default function QuotationForm() {
                 {itemList.map(it => <option key={it.id} value={it.item_name} />)}
               </datalist>
             </div>
-            <div className="form-group" style={{ flex: 1.2 }}>
+            <div className="form-group">
               <label>Event Name</label>
               <input list="event-list" value={entry.event_name}
                 onChange={e => setE('event_name', e.target.value)} placeholder="Event…" />
@@ -547,66 +576,129 @@ export default function QuotationForm() {
                 {(eventList.length ? eventList : EVENTS).map(ev => <option key={ev} value={ev} />)}
               </datalist>
             </div>
-            <div className="form-group" style={{ width: 70 }}>
+            <div className="form-group">
               <label>Qnty</label>
               <input type="number" min={0} value={entry.qnty} onChange={e => setE('qnty', e.target.value)} />
             </div>
-            <div className="form-group" style={{ width: 100 }}>
+            <div className="form-group">
               <label>Rate</label>
               <input type="number" min={0} step="0.01" value={entry.rate} onChange={e => setE('rate', e.target.value)} />
             </div>
-            <div className="form-group" style={{ width: 110 }}>
+            <div className="form-group">
               <label>Total</label>
-              <input value={cur(entry.total)} readOnly style={{ background: '#f9fafb', fontWeight: 600 }} />
+              <input value={cur(entry.total)} readOnly style={{ background: 'hsl(var(--muted))', fontWeight: 600 }} />
             </div>
-            <div className="form-group" style={{ width: 130 }}>
+            <div className="form-group">
               <label>Camera Model</label>
               <input value={entry.camera_model} onChange={e => setE('camera_model', e.target.value)} />
             </div>
             {form.display_purchase_rate && (
-              <div className="form-group" style={{ width: 100 }}>
+              <div className="form-group">
                 <label>Pur.Rate</label>
                 <input type="number" min={0} value={entry.pur_rate} onChange={e => setE('pur_rate', e.target.value)} />
               </div>
             )}
-            <div className="qitem-entry-btns">
-              <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateEntry}>
-                {editingIndex === null ? <><Plus size={15} /> Add</> : 'Update'}
-              </button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEntry}>Cancel</button>
-            </div>
+          </div>
+          <div className="entry-actions">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEntry}>Cancel</button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateEntry}>
+              {editingIndex === null ? <><Plus size={15} /> Add Item</> : 'Update Item'}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Items grid + Post Production Item + totals */}
-      <div className="page-cols" style={{ gridTemplateColumns: '2.4fr 1fr', marginTop: 8, gap: 8, alignItems: 'start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div className="card">
-            <div className="table-wrap" style={{ maxHeight: 150, overflowY: 'auto' }}>
+      {/* Items grid — full width so all 7 columns have room to breathe */}
+      <div className="card">
+        <div className="card-header"><div className="card-title">Items Added</div></div>
+        <div className="table-wrap" style={{ maxHeight: 220, overflowY: 'auto' }}>
+          <table className="data-table">
+            <thead><tr>
+              <th>#</th><th>Date</th><th>Item Name</th><th>Event</th>
+              <th style={{ textAlign: 'center' }}>Qnty</th>
+              <th style={{ textAlign: 'right' }}>Rate</th>
+              <th style={{ textAlign: 'right' }}>Total</th>
+              <th></th>
+            </tr></thead>
+            <tbody>
+              {items.length === 0 && <tr><td colSpan={8} className="table-empty"><p>No items added</p></td></tr>}
+              {items.map((it, i) => (
+                <tr key={i} style={editingIndex === i ? { background: 'hsl(var(--accent))' } : undefined}>
+                  <td>{i + 1}</td>
+                  <td>{fmt(it.function_date)}</td>
+                  <td><strong>{it.item_name}</strong></td>
+                  <td>{it.event_name || '-'}</td>
+                  <td style={{ textAlign: 'center' }}>{it.qnty}</td>
+                  <td style={{ textAlign: 'right' }}>{cur(it.rate)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{cur(it.total)}</td>
+                  <td>
+                    <div className="action-btns">
+                      <button className="btn-edit" onClick={() => editRow(i)}><Pencil size={14} /></button>
+                      <button className="btn-danger-soft" onClick={() => delRow(i)}><Trash2 size={14} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Post Production Item (entry + grid) paired with Summary — both are naturally
+          narrower content, so they sit side by side instead of each fighting for full width. */}
+      <div className="page-cols" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'start' }}>
+        {/* Post Production Item — add/remove entry, same tinted-panel pattern as Item entry */}
+        <div className="card">
+          <div className="card-header"><div className="card-title">Post Production Item</div></div>
+          <div className="card-entry" style={{ margin: '0 -1px', borderRadius: 0 }}>
+            <div className="card-body" style={{ paddingBottom: 10 }}>
+              <div className="entry-grid">
+                <div className="form-group wide">
+                  <label>Item</label>
+                  <input list="deliverable-item-list" value={deliverableEntry.item_name}
+                    onChange={e => onPickDeliverableItem(e.target.value)} placeholder="Select / type item…" />
+                  <datalist id="deliverable-item-list">
+                    {deliverableList.map(d => <option key={d.id} value={d.item_name} />)}
+                  </datalist>
+                </div>
+                <div className="form-group">
+                  <label>Qnty</label>
+                  <input type="number" min={0} value={deliverableEntry.qnty} onChange={e => setDE('qnty', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Amount</label>
+                  <input type="number" min={0} step="0.01" value={deliverableEntry.amount} onChange={e => setDE('amount', e.target.value)} />
+                </div>
+              </div>
+              <div className="entry-actions">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={cancelDeliverableEntry}>Cancel</button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateDeliverable}>
+                  {editingDeliverableIndex === null ? <><Plus size={15} /> Add Item</> : 'Update Item'}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="card-body" style={{ paddingTop: 8 }}>
+            <div className="table-wrap" style={{ maxHeight: 160, overflowY: 'auto' }}>
               <table className="data-table">
                 <thead><tr>
-                  <th>#</th><th>Date</th><th>Item Name</th><th>Event</th>
+                  <th>#</th><th>Item</th>
                   <th style={{ textAlign: 'center' }}>Qnty</th>
-                  <th style={{ textAlign: 'right' }}>Rate</th>
-                  <th style={{ textAlign: 'right' }}>Total</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
                   <th></th>
                 </tr></thead>
                 <tbody>
-                  {items.length === 0 && <tr><td colSpan={8} className="table-empty"><p>No items added</p></td></tr>}
-                  {items.map((it, i) => (
-                    <tr key={i} style={editingIndex === i ? { background: '#eff6ff' } : undefined}>
+                  {deliverables.length === 0 && <tr><td colSpan={5} className="table-empty"><p>No post production items added</p></td></tr>}
+                  {deliverables.map((d, i) => (
+                    <tr key={i} style={editingDeliverableIndex === i ? { background: 'hsl(var(--accent))' } : undefined}>
                       <td>{i + 1}</td>
-                      <td>{fmt(it.function_date)}</td>
-                      <td><strong>{it.item_name}</strong></td>
-                      <td>{it.event_name || '-'}</td>
-                      <td style={{ textAlign: 'center' }}>{it.qnty}</td>
-                      <td style={{ textAlign: 'right' }}>{cur(it.rate)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{cur(it.total)}</td>
+                      <td><strong>{d.item_name}</strong></td>
+                      <td style={{ textAlign: 'center' }}>{d.qnty}</td>
+                      <td style={{ textAlign: 'right' }}>{cur(d.amount)}</td>
                       <td>
                         <div className="action-btns">
-                          <button className="btn-edit" onClick={() => editRow(i)}><Pencil size={14} /></button>
-                          <button className="btn-danger-soft" onClick={() => delRow(i)}><Trash2 size={14} /></button>
+                          <button className="btn-edit" onClick={() => editDeliverableRow(i)}><Pencil size={14} /></button>
+                          <button className="btn-danger-soft" onClick={() => delDeliverableRow(i)}><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>
@@ -615,83 +707,25 @@ export default function QuotationForm() {
               </table>
             </div>
           </div>
-
-          {/* Post Production Item — add/remove entry, same pattern as the Item entry above */}
-          <div className="card">
-            <div className="card-header"><div className="card-title">Post Production Item</div></div>
-            <div className="card-body">
-              <div className="qitem-entry">
-                <div className="form-group" style={{ flex: 1.6 }}>
-                  <label>Item</label>
-                  <input list="deliverable-item-list" value={deliverableEntry.item_name}
-                    onChange={e => onPickDeliverableItem(e.target.value)} placeholder="Select / type item…" />
-                  <datalist id="deliverable-item-list">
-                    {deliverableList.map(d => <option key={d.id} value={d.item_name} />)}
-                  </datalist>
-                </div>
-                <div className="form-group" style={{ width: 80 }}>
-                  <label>Qnty</label>
-                  <input type="number" min={0} value={deliverableEntry.qnty} onChange={e => setDE('qnty', e.target.value)} />
-                </div>
-                <div className="form-group" style={{ width: 110 }}>
-                  <label>Amount</label>
-                  <input type="number" min={0} step="0.01" value={deliverableEntry.amount} onChange={e => setDE('amount', e.target.value)} />
-                </div>
-                <div className="qitem-entry-btns">
-                  <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateDeliverable}>
-                    {editingDeliverableIndex === null ? <><Plus size={15} /> Add</> : 'Update'}
-                  </button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={cancelDeliverableEntry}>Cancel</button>
-                </div>
-              </div>
-
-              <div className="table-wrap" style={{ maxHeight: 130, overflowY: 'auto', marginTop: 8 }}>
-                <table className="data-table">
-                  <thead><tr>
-                    <th>#</th><th>Item</th>
-                    <th style={{ textAlign: 'center' }}>Qnty</th>
-                    <th style={{ textAlign: 'right' }}>Amount</th>
-                    <th></th>
-                  </tr></thead>
-                  <tbody>
-                    {deliverables.length === 0 && <tr><td colSpan={5} className="table-empty"><p>No post production items added</p></td></tr>}
-                    {deliverables.map((d, i) => (
-                      <tr key={i} style={editingDeliverableIndex === i ? { background: '#eff6ff' } : undefined}>
-                        <td>{i + 1}</td>
-                        <td><strong>{d.item_name}</strong></td>
-                        <td style={{ textAlign: 'center' }}>{d.qnty}</td>
-                        <td style={{ textAlign: 'right' }}>{cur(d.amount)}</td>
-                        <td>
-                          <div className="action-btns">
-                            <button className="btn-edit" onClick={() => editDeliverableRow(i)}><Pencil size={14} /></button>
-                            <button className="btn-danger-soft" onClick={() => delDeliverableRow(i)}><Trash2 size={14} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
         </div>
 
-        <div className="card">
+        <div className="card card-totals">
+          <div className="card-header"><div className="card-title">Summary</div></div>
           <div className="card-body">
             <div className="summary-box">
               <div className="summary-row"><span>Sub Total</span><strong>{cur(subTotal)}</strong></div>
               <div className="summary-row">
                 <span>Discount</span>
                 <input type="number" min={0} value={form.discount} onChange={set('discount')}
-                  title="Discount amount" style={{ width: 90, textAlign: 'right', padding: '3px 6px', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                  title="Discount amount" className="summary-input" style={{ width: 90 }} />
               </div>
               <div className="summary-row">
                 <span>Extra Charge</span>
                 <input type="number" min={0} value={form.extra_charge} onChange={set('extra_charge')}
-                  title="Extra Charge" style={{ width: 70, textAlign: 'right', padding: '3px 6px', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                  title="Extra Charge" className="summary-input" style={{ width: 70 }} />
               </div>
               <div className="summary-row" style={{ borderBottom: 'none', fontSize: 15 }}>
-                <strong>Grand Total</strong><strong style={{ color: '#2563eb' }}>{cur(grandTotal)}</strong>
+                <strong>Grand Total</strong><strong style={{ color: 'hsl(var(--primary))' }}>{cur(grandTotal)}</strong>
               </div>
             </div>
           </div>
@@ -699,28 +733,93 @@ export default function QuotationForm() {
       </div>
 
       {/* Note */}
-      <div className="card" style={{ marginTop: 8 }}>
+      <div className="card">
         <div className="card-body form-group">
           <label>Note</label>
           <textarea rows={1} value={form.note} onChange={set('note')} />
         </div>
       </div>
 
-      {/* Action bar */}
-      <div className="quotation-actions">
-        <button className="btn btn-primary"  onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
-        <button className="btn btn-danger"   onClick={remove}><Trash2 size={15} /> Delete</button>
-        <button className="btn btn-outline"  onClick={() => doPrint(true)}><Printer size={15} /> Print (Rate)</button>
-        <button className="btn btn-outline"  onClick={() => doPrint(false)}><Printer size={15} /> Print (W/O Rate)</button>
-        {/* Cancel resets to a blank new quotation (matches legacy CmdCancel); Exit leaves
-            the module entirely (matches legacy CmdExit / Me.Close()) — previously identical. */}
-        <button className="btn btn-ghost"    onClick={() => nav('/quotations/new')}><X size={15} /> Cancel</button>
-        <button className="btn btn-ghost"    onClick={() => nav('/quotations')}><LogOut size={15} /> Exit</button>
-        {/* Matches legacy's dedicated PDF export button on the report viewer toolbar — no
-            server-side PDF engine on the web, so this reuses the W/O Rate print letterhead
-            and relies on the browser's print dialog "Save as PDF" destination. */}
-        <button className="btn btn-outline"  onClick={() => doPrint(false)}><FileDown size={15} /> PDF</button>
-        <button className="btn btn-outline"  onClick={openWhatsApp}><Send size={15} /> WhatsApp</button>
+      </div>
+
+      {/* Live preview — mirrors what the client sees on the printed/PDF/WhatsApp quotation */}
+      <div className="quo-preview-col">
+        <div className="card" style={{ marginBottom: 8 }}>
+          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px' }}>
+            <span style={{ fontSize: 11.5, color: 'var(--color-muted-foreground)' }}>Client sees</span>
+            <div className="quo-rate-toggle" style={{ marginLeft: 'auto' }}>
+              <button type="button" className={showRates ? 'on' : ''} onClick={() => setShowRates(true)}>With rates</button>
+              <button type="button" className={!showRates ? 'on' : ''} onClick={() => setShowRates(false)}>Without rates</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="quo-doc">
+          <div className="quo-doc-head">
+            <div>
+              <h3>{studio.name}</h3>
+              <div className="quo-doc-sub">Outdoor photography and event coverage</div>
+            </div>
+            <div className="quo-doc-meta">
+              Quotation #{form.quo_no}<br />
+              {fmt2(form.quo_date)}
+            </div>
+          </div>
+
+          <div className="quo-doc-to">Prepared for</div>
+          <div className="quo-doc-name">{form.client_name || '—'}</div>
+          <div className="quo-doc-contact">{form.contact_no}</div>
+
+          {(items.length + deliverables.length) > 0 ? (
+            <table className="quo-doc-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '48%' }}>Item</th>
+                  <th style={{ width: '14%' }}>Date</th>
+                  <th className="c" style={{ width: '8%' }}>Qty</th>
+                  {showRates && <th className="r" style={{ width: '15%' }}>Rate</th>}
+                  {showRates && <th className="r" style={{ width: '15%' }}>Total</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((it, i) => (
+                  <tr key={'i' + i}>
+                    <td><strong style={{ fontWeight: 600 }}>{it.item_name}</strong><span className="ev">{it.event_name}</span></td>
+                    <td style={{ fontSize: 12, color: '#6A6A6A' }}>{fmt2(it.function_date)}</td>
+                    <td className="c">{it.qnty || 1}</td>
+                    {showRates && <td className="r">{cur(it.rate)}</td>}
+                    {showRates && <td className="r" style={{ fontWeight: 600 }}>{cur(it.total)}</td>}
+                  </tr>
+                ))}
+                {deliverables.map((d, i) => (
+                  <tr key={'d' + i}>
+                    <td><strong style={{ fontWeight: 600 }}>{d.item_name}</strong><span className="ev">Post production</span></td>
+                    <td style={{ fontSize: 12, color: '#6A6A6A' }}>—</td>
+                    <td className="c">{d.qnty || 1}</td>
+                    {showRates && <td className="r">{cur(d.amount)}</td>}
+                    {showRates && <td className="r" style={{ fontWeight: 600 }}>{cur(d.amount)}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="quo-doc-empty">Add a line item to see it here.</div>
+          )}
+
+          {showRates && (
+            <div className="quo-doc-totals">
+              <div><span>Items</span><span>{cur(linesTotal)}</span></div>
+              {deliverablesTotal > 0 && <div><span>Post production</span><span>{cur(deliverablesTotal)}</span></div>}
+              {discount > 0 && <div><span>Discount</span><span>−{cur(discount)}</span></div>}
+              {Number(form.extra_charge) > 0 && <div><span>Extra charge</span><span>{cur(form.extra_charge)}</span></div>}
+              <div className="quo-doc-grand"><span>Grand total</span><strong>{cur(grandTotal)}</strong></div>
+            </div>
+          )}
+
+          {form.note && <div className="quo-doc-note">{form.note}</div>}
+        </div>
+      </div>
+
       </div>
     </div>
   );

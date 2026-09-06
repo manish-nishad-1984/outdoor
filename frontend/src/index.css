@@ -4,8 +4,7 @@
 
 /* ═══════════════════════════════════════════
    DESIGN TOKENS — enterprise SaaS system
-   Brand primary swapped to this project's blue (#2563eb / blue-600);
-   every other value matches the supplied spec exactly.
+   Brand primary matches the ShreeHari-Solar-main reference's green exactly.
 ═══════════════════════════════════════════ */
 :root {
   --background: 0 0% 100%;
@@ -16,22 +15,22 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 22% 12%;
 
-  --primary: 221 83% 53%;
+  --primary: 142 72% 24%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 210 20% 96%;
   --secondary-foreground: 222 22% 20%;
   --muted: 210 20% 97%;
   --muted-foreground: 220 9% 46%;
-  --accent: 214 100% 97%;
-  --accent-foreground: 226 71% 40%;
+  --accent: 142 45% 94%;
+  --accent-foreground: 142 72% 20%;
 
   --destructive: 0 72% 45%;
   --destructive-foreground: 0 0% 100%;
 
   --border: 220 13% 91%;
   --input: 220 13% 88%;
-  --ring: 221 83% 53%;
+  --ring: 142 72% 30%;
 
   --status-neutral: 220 9% 46%;
   --status-info: 213 82% 48%;
@@ -41,40 +40,45 @@
   --status-danger: 0 72% 48%;
 
   --radius: 0.5rem;
+  --font-label: var(--font-sans);
 }
 
+/* Dark theme: a deeper, flatter, more "technical/ERP" palette — deliberately
+   distinct from the light theme rather than just an inverted copy of it. */
 [data-theme="dark"] {
-  --background: 222 24% 8%;
+  --background: 224 28% 6%;
   --foreground: 210 20% 96%;
 
-  --card: 222 22% 11%;
+  --card: 222 24% 9%;
   --card-foreground: 210 20% 96%;
-  --popover: 222 22% 11%;
+  --popover: 222 24% 10%;
   --popover-foreground: 210 20% 96%;
 
-  --primary: 217 91% 60%;
+  --primary: 142 62% 42%;
   --primary-foreground: 222 24% 8%;
 
-  --secondary: 222 18% 17%;
+  --secondary: 222 18% 15%;
   --secondary-foreground: 210 20% 92%;
-  --muted: 222 18% 15%;
-  --muted-foreground: 218 11% 62%;
-  --accent: 221 30% 18%;
-  --accent-foreground: 213 94% 78%;
+  --muted: 222 20% 12%;
+  --muted-foreground: 218 12% 58%;
+  --accent: 142 30% 18%;
+  --accent-foreground: 142 60% 78%;
 
-  --destructive: 0 62% 52%;
+  --destructive: 0 62% 55%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 222 16% 20%;
-  --input: 222 16% 24%;
-  --ring: 217 91% 60%;
+  --border: 222 18% 16%;
+  --input: 222 18% 20%;
+  --ring: 142 62% 46%;
 
   --status-neutral: 218 11% 62%;
   --status-info: 213 82% 62%;
   --status-progress: 262 65% 70%;
-  --status-success: 142 60% 50%;
+  --status-success: 142 65% 48%;
   --status-warning: 34 92% 58%;
   --status-danger: 0 72% 62%;
+
+  --font-label: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @theme inline {
@@ -115,6 +119,7 @@
   --text-2xs--line-height: 1rem;
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --spacing-sidebar: 16rem;
   --spacing-sidebar-collapsed: 4.5rem;
@@ -138,6 +143,84 @@ body {
 
 .numeric { @apply font-mono text-[0.8125rem]; font-variant-numeric: tabular-nums; }
 .section-label { @apply text-2xs font-semibold uppercase tracking-wider text-muted-foreground; }
+
+/* ═══════════════════════════════════════════
+   DARK THEME — technical/ERP treatment
+   (light theme is untouched; every rule below is scoped under [data-theme="dark"])
+═══════════════════════════════════════════ */
+[data-theme="dark"] .card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .search-box,
+[data-theme="dark"] .filter-select,
+[data-theme="dark"] .filter-group input,
+[data-theme="dark"] .filter-group select,
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .form-group textarea,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .btn-outline,
+[data-theme="dark"] .topbar-profile-btn,
+[data-theme="dark"] .theme-toggle,
+[data-theme="dark"] .pagination button,
+[data-theme="dark"] .page-btn {
+  box-shadow: none;
+}
+
+[data-theme="dark"] .form-group label,
+[data-theme="dark"] .filter-group label,
+[data-theme="dark"] .stat-label,
+[data-theme="dark"] .section-label,
+[data-theme="dark"] .data-table th,
+[data-theme="dark"] th,
+[data-theme="dark"] .page-subtitle,
+[data-theme="dark"] .breadcrumb,
+[data-theme="dark"] .kbd-hint,
+[data-theme="dark"] .pagination-info {
+  font-family: var(--font-label);
+  letter-spacing: 0.05em;
+}
+[data-theme="dark"] .form-group label,
+[data-theme="dark"] .filter-group label,
+[data-theme="dark"] .stat-label,
+[data-theme="dark"] .section-label {
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+}
+[data-theme="dark"] .card-title {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.8125rem;
+}
+
+/* Auto-numbered section badges (01, 02, 03…) in front of each card's title —
+   pure CSS counters, no markup changes needed on any page. */
+[data-theme="dark"] .page-container { counter-reset: section; }
+[data-theme="dark"] .page-container .card-header .card-title {
+  position: relative;
+  counter-increment: section;
+  padding-left: 2.125rem;
+  min-height: 1.75rem;
+  display: flex;
+  align-items: center;
+}
+[data-theme="dark"] .page-container .card-header .card-title::before {
+  content: counter(section, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-label);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
 
 /* ═══════════════════════════════════════════
    LAYOUT
@@ -319,7 +402,7 @@ body {
    STATS
 ═══════════════════════════════════════════ */
 .stats-grid { @apply grid grid-cols-4 gap-3.5 mb-4; }
-.stat-card  { @apply rounded-lg border border-border bg-card shadow-card px-[18px] py-4; }
+.stat-card  { @apply rounded-lg border border-border bg-card shadow-card p-4 transition-shadow hover:shadow-md; }
 .stat-card:has(.stat-icon) { @apply flex items-center gap-3.5; }
 .stat-icon  { @apply w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0; }
 .stat-icon.orange { @apply bg-status-warning/10 text-status-warning; }
@@ -336,11 +419,11 @@ body {
    TABLE
 ═══════════════════════════════════════════ */
 .table-toolbar { @apply flex items-center justify-between gap-[10px] flex-wrap mb-[14px]; }
-.table-wrap    { @apply overflow-x-auto; }
-.data-table    { @apply w-full border-collapse; }
+.table-wrap    { @apply overflow-auto; max-height: calc(100vh - 280px); }
+.data-table    { @apply w-full border-separate border-spacing-0; }
 .data-table thead tr  { @apply border-b border-border; }
-.data-table th { @apply px-[14px] py-[10px] text-left text-2xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap bg-muted/50; }
-.data-table td { @apply px-[14px] py-3 border-b border-border/70 text-sm align-middle text-foreground; }
+.data-table th { @apply sticky top-0 z-10 px-3 py-2 text-left text-2xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap bg-muted/70 backdrop-blur; }
+.data-table td { @apply px-3 py-2 border-b border-border/70 text-sm align-middle text-foreground; }
 .data-table tbody tr:last-child td { @apply border-b-0; }
 .data-table tbody tr:hover td { @apply bg-accent/50; }
 .action-btns   { @apply flex gap-[2px] items-center; }
@@ -434,32 +517,49 @@ tbody tr:hover td { @apply bg-accent/50; }
 .qitem-entry-btns { @apply flex gap-2 items-center pb-[1px]; }
 
 /* Quotation action bar */
-.quotation-actions { @apply flex flex-wrap gap-2 mt-4 p-[14px] bg-muted/50 border border-border rounded-lg; }
+.quotation-actions { @apply flex flex-wrap gap-2 mb-4 p-[14px] bg-muted/50 border border-border rounded-lg; }
 .quotation-actions .btn { @apply flex-1 justify-center min-w-[120px]; }
+
+/* Quotation entry panels — a visually distinct "you type here" surface, tinted apart
+   from the plain white display/grid cards around it. Scoped to the Quotation form's
+   own redesign; other order forms keep the original .qitem-entry look untouched. */
+.card-entry { @apply bg-accent/40 border-accent-foreground/10; }
+.card-entry .card-header { @apply border-accent-foreground/10; }
+.card-totals { @apply bg-accent/25; }
+.entry-grid {
+  @apply grid gap-3 items-end;
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+}
+.entry-grid .form-group.wide { grid-column: span 2; }
+.entry-actions { @apply flex items-center justify-end gap-2 pt-3 mt-1 border-t border-border/70; }
 
 /* Compact layout — scoped to the Quotation form only, so it can fit one screen without
    the whole page needing to scroll (matching the legacy dialog, which was a fixed-size
    window). Overflow within any one section — e.g. many detail rows — scrolls locally
    inside that section instead of growing the page. */
-.quotation-form .card { margin-bottom: 4px; }
-.quotation-form .card-body { padding: 6px 10px; }
-.quotation-form .card-header { padding: 5px 10px; }
-.quotation-form .form-grid { gap: 4px 10px; }
-body:has(.quotation-form) .content { padding: 10px 20px; }
-.quotation-form .form-group { gap: 2px; }
-.quotation-form .form-group label { font-size: 10.5px; }
+.quotation-form .card { margin-bottom: 14px; }
+.quotation-form .card-body { padding: 14px 16px; }
+.quotation-form .card-header { padding: 11px 16px; }
+.quotation-form .form-grid { gap: 14px 16px; }
+body:has(.quotation-form) .content { padding: 20px 24px; }
+.quotation-form .form-group { gap: 5px; }
+.quotation-form .form-group label { font-size: 12px; }
 .quotation-form .form-group input,
 .quotation-form .form-group select,
-.quotation-form .form-group textarea { padding: 4px 8px; font-size: 12.5px; height: auto; }
-.quotation-form .form-select { height: 27px; padding: 0 8px; font-size: 12.5px; }
-.quotation-form .qitem-entry { gap: 6px; }
-.quotation-form .summary-row { padding: 4px 10px; font-size: 12.5px; }
-.quotation-form .data-table th { padding: 5px 8px; font-size: 10px; }
-.quotation-form .data-table td { padding: 4px 8px; font-size: 12.5px; }
-.quotation-form .quotation-actions { padding: 5px; margin-top: 4px; }
-.quotation-form .quotation-actions .btn { padding: 6px 8px; font-size: 12px; min-width: 90px; height: auto; }
-.quotation-form .alert { padding: 6px 12px; margin-bottom: 6px; font-size: 12.5px; }
-.quotation-form textarea { min-height: 40px; }
+.quotation-form .form-group textarea { padding: 7px 10px; font-size: 13.5px; height: auto; }
+.quotation-form .form-select { height: 36px; padding: 0 10px; font-size: 13.5px; }
+.quotation-form .qitem-entry { gap: 10px; }
+.quotation-form .summary-row { padding: 9px 14px; font-size: 13.5px; }
+.quotation-form .data-table th { padding: 8px 10px; font-size: 11px; }
+.quotation-form .data-table td { padding: 8px 10px; font-size: 13.5px; }
+.quotation-form .quotation-actions { padding: 10px; margin-bottom: 16px; }
+.quotation-form .quotation-actions .btn { padding: 9px 14px; font-size: 13px; min-width: 100px; height: auto; }
+.quotation-form .entry-grid { gap: 12px; }
+.quotation-form .entry-actions { padding-top: 12px; margin-top: 4px; }
+.quotation-form .alert { padding: 10px 14px; margin-bottom: 12px; font-size: 13.5px; }
+.quotation-form textarea { min-height: 56px; }
+.quotation-form .page-cols,
+.quotation-form .quo-split { gap: 16px; }
 
 /* ═══════════════════════════════════════════
    PAGE COLS
@@ -468,11 +568,55 @@ body:has(.quotation-form) .content { padding: 10px 20px; }
 .page-cols > * { min-width: 0; }
 
 /* ═══════════════════════════════════════════
+   QUOTATION SPLIT — work pane + live preview
+═══════════════════════════════════════════ */
+.quo-split { @apply grid gap-4; grid-template-columns: 1.8fr 1fr; align-items: start; }
+.quo-split > * { min-width: 0; }
+.quo-preview-col { position: sticky; top: 8px; }
+.quo-rate-toggle { @apply inline-flex bg-muted rounded-full p-[2px] border border-border; }
+.quo-rate-toggle button { @apply text-2xs px-3 py-1 rounded-full border-0 bg-transparent text-muted-foreground cursor-pointer; }
+.quo-rate-toggle button.on { @apply bg-foreground text-background; }
+
+.quo-doc {
+  @apply bg-white text-[#232323] rounded-lg border border-border shadow-card px-7 py-8;
+  font-family: 'Source Serif 4', Georgia, serif;
+}
+.quo-doc-head { @apply flex items-start justify-between pb-3; border-bottom: 2px solid #232323; }
+.quo-doc-head h3 { font-family: 'Work Sans', 'Inter', sans-serif; @apply text-[17px] font-semibold tracking-tight; }
+.quo-doc-sub { font-family: 'Work Sans', 'Inter', sans-serif; @apply text-2xs mt-[2px]; color: #6A6A6A; }
+.quo-doc-meta { font-family: 'Work Sans', 'Inter', sans-serif; @apply text-right text-xs leading-[1.7]; color: #4A4A4A; }
+.quo-doc-to { font-family: 'Work Sans', 'Inter', sans-serif; @apply text-2xs mt-4 mb-1; color: #8A8A8A; }
+.quo-doc-name { @apply text-base font-semibold; }
+.quo-doc-contact { font-family: 'Work Sans', 'Inter', sans-serif; @apply text-xs; color: #5A5A5A; }
+.quo-doc-table { @apply w-full border-collapse mt-4; }
+.quo-doc-table th { font-family: 'Work Sans', 'Inter', sans-serif; @apply text-left text-[10.5px] font-medium pb-[6px]; color: #7A7A7A; border-bottom: 1px solid #D6D6D2; }
+.quo-doc-table th.c { text-align: center; }
+.quo-doc-table th.r { text-align: right; }
+.quo-doc-table td.c { text-align: center; }
+.quo-doc-table td.r { text-align: right; }
+.quo-doc-table td { @apply py-[9px] text-sm align-top; border-bottom: 1px solid #EFEFEB; }
+.quo-doc-table .ev { font-family: 'Work Sans', 'Inter', sans-serif; @apply block text-2xs mt-[1px]; color: #7A7A7A; }
+.quo-doc-totals { font-family: 'Work Sans', 'Inter', sans-serif; @apply mt-4 ml-auto text-xs; width: 240px; }
+.quo-doc-totals > div { @apply flex justify-between py-1; color: #4A4A4A; }
+.quo-doc-grand { @apply flex justify-between items-baseline mt-2 px-[11px] py-[9px] rounded; background: #FBF3E2; }
+.quo-doc-grand span { @apply text-[13px] font-semibold; color: #5C4207; }
+.quo-doc-grand strong { @apply text-[20px] font-semibold; color: #5C4207; }
+.quo-doc-note { @apply mt-5 pt-3 text-[13px] whitespace-pre-wrap; border-top: 1px solid #EFEFEB; color: #4A4A4A; }
+.quo-doc-empty { font-family: 'Work Sans', 'Inter', sans-serif; @apply text-center text-2xs py-6; color: #A0A0A0; }
+
+@media (max-width: 1080px) {
+  .quo-split { grid-template-columns: 1fr; }
+  .quo-preview-col { position: static; }
+}
+
+/* ═══════════════════════════════════════════
    SUMMARY / MISC
 ═══════════════════════════════════════════ */
 .summary-box { @apply border border-border rounded-md overflow-hidden; }
 .summary-row { @apply flex justify-between items-center px-[14px] py-[9px] border-b border-border/70 text-sm text-foreground; }
 .summary-row:last-child { @apply border-b-0 font-semibold text-sm text-foreground bg-muted/50; }
+.summary-input { @apply h-7 px-2 text-right text-sm border border-input rounded bg-card text-foreground outline-none
+                        focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background; }
 
 .avatar { @apply rounded-full flex items-center justify-center font-semibold text-white flex-shrink-0 text-2xs; }
 .av-blue   { @apply bg-status-info; }

@@ -101,7 +101,7 @@ export default function Attendance() {
         </div>
         <div className="stat-card">
           <div className="stat-label">EMPLOYEES</div>
-          <div className="stat-value" style={{color:'#2563eb'}}>{summary.length}</div>
+          <div className="stat-value" style={{color:'hsl(var(--primary))'}}>{summary.length}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">TOTAL PRESENT (TODAY)</div>

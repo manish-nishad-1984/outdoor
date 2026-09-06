@@ -190,7 +190,7 @@ export default function StudioOrderForm() {
         <div className="card">
           <div className="card-body form-grid">
             <div className="form-group"><label>Order No</label>
-              <input value={form.order_no} readOnly style={{ background: '#eff6ff', fontWeight: 700 }} /></div>
+              <input value={form.order_no} readOnly style={{ background: 'hsl(var(--accent))', fontWeight: 700 }} /></div>
             <div className="form-group"><label>Date</label>
               <input type="date" value={form.order_date} onChange={set('order_date')} /></div>
             <div className="form-group"><label>Cust. Name *</label>
@@ -304,7 +304,7 @@ export default function StudioOrderForm() {
                 <input type="number" min={0} value={form.advance} onChange={set('advance')}
                   style={{ width: 120, textAlign: 'right', padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
               <div className="summary-row" style={{ fontSize: 15 }}>
-                <strong>Grand Total</strong><strong style={{ color: '#2563eb' }}>{cur(grandTotal)}</strong></div>
+                <strong>Grand Total</strong><strong style={{ color: 'hsl(var(--primary))' }}>{cur(grandTotal)}</strong></div>
               <div className="summary-row" style={{ borderBottom: 'none' }}><span>Payment</span>
                 <select value={form.payment_mode} onChange={set('payment_mode')} className="form-select" style={{ width: 130 }}>
                   {PAYMENTS.map(p => <option key={p}>{p}</option>)}

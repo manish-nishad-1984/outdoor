@@ -92,7 +92,7 @@ export default function OutdoorOrders() {
                   return (
                     <tr key={o.id}>
                       <td>
-                        <Link to={`/outdoor-orders/${o.id}`} style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>
+                        <Link to={`/outdoor-orders/${o.id}`} style={{ color: 'hsl(var(--primary))', fontWeight: 600, textDecoration: 'none' }}>
                           {o.order_no}
                         </Link>
                       </td>

@@ -80,7 +80,7 @@ export default function HireOrders() {
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card card-accent"><div className="stat-label">TOTAL ORDERS</div><div className="stat-value">{stats.total||0}</div></div>
-        <div className="stat-card"><div className="stat-label">TOTAL VALUE</div><div className="stat-value" style={{color:'#2563eb'}}>{cur(stats.total_value)}</div></div>
+        <div className="stat-card"><div className="stat-label">TOTAL VALUE</div><div className="stat-value" style={{color:'hsl(var(--primary))'}}>{cur(stats.total_value)}</div></div>
         <div className="stat-card"></div><div className="stat-card"></div>
       </div>
 

@@ -38,6 +38,11 @@ const SEARCH_INDEX = NAV.flatMap(item =>
   item.children ? item.children.map(c => ({ ...c, group: item.label })) : [{ ...item, group: null }]
 );
 
+// path -> parent nav group label, for the topbar breadcrumb trail
+const GROUP_BY_PATH = Object.fromEntries(
+  SEARCH_INDEX.filter(i => i.group).map(i => [i.to, i.group])
+);
+
 function ModuleSearch() {
   const navigate = useNavigate();
   const inputRef = useRef(null);
@@ -151,6 +156,7 @@ export default function Layout() {
   const location = useLocation();
   const base = '/' + location.pathname.split('/')[1];
   const title = titles[base] || 'OutdoorStudio';
+  const group = GROUP_BY_PATH[base];
   const { preference, cycleTheme } = useTheme();
   const ThemeIcon = THEME_ICON[preference];
 
@@ -160,6 +166,7 @@ export default function Layout() {
       <div className="main">
         <header className="topbar">
           <div className="topbar-left">
+            {group && <div className="breadcrumb">{group} / {title}</div>}
             <div className="page-title">{title}</div>
           </div>
           <ModuleSearch />

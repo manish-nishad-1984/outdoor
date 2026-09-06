@@ -30,8 +30,8 @@ export default function Login() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2 bg-background text-foreground">
-      {/* LEFT — the form, centered, no card/border around it */}
-      <div className="flex flex-col justify-center px-6 py-10 sm:px-12">
+      {/* RIGHT (on lg+) — the form, centered, no card/border around it */}
+      <div className="order-2 flex flex-col justify-center px-6 py-10 sm:px-12">
         <div className="mx-auto w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5">
             <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -101,8 +101,8 @@ export default function Login() {
         </div>
       </div>
 
-      {/* RIGHT — solid brand-color panel, decorative only */}
-      <aside className="relative hidden overflow-hidden bg-primary lg:flex lg:flex-col lg:justify-between">
+      {/* LEFT (on lg+) — solid brand-color panel, decorative only */}
+      <aside className="relative order-1 hidden overflow-hidden bg-primary lg:flex lg:flex-col lg:justify-between">
         <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-white/25 blur-3xl" />
         <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-20 size-80 rounded-full bg-white/20 blur-3xl" />
 

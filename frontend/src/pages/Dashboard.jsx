@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
-  Camera, Wallet, CheckCircle2, Clock, TrendingUp, Zap, PieChart,
+  Camera, Wallet, TrendingUp, Zap, PieChart,
   Receipt, FileText, BarChart2,
 } from 'lucide-react';
 import api from '../api/axios';
@@ -25,36 +25,24 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon orange"><Camera size={20} strokeWidth={2} /></div>
-          <div>
-            <div className="stat-label">Monthly Orders</div>
-            <div className="stat-value">{stats?.orders?.total ?? '—'}</div>
-            <div className="stat-sub">This month</div>
-          </div>
+          <div className="stat-label">Monthly Orders</div>
+          <div className="stat-value numeric">{stats?.orders?.total ?? '—'}</div>
+          <div className="stat-sub">This month</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon green"><Wallet size={20} strokeWidth={2} /></div>
-          <div>
-            <div className="stat-label">Monthly Revenue</div>
-            <div className="stat-value">₹{stats ? Number(stats.monthly_sales).toLocaleString('en-IN') : '—'}</div>
-            <div className="stat-sub">Sales invoiced</div>
-          </div>
+          <div className="stat-label">Monthly Revenue</div>
+          <div className="stat-value numeric">₹{stats ? Number(stats.monthly_sales).toLocaleString('en-IN') : '—'}</div>
+          <div className="stat-sub">Sales invoiced</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon blue"><CheckCircle2 size={20} strokeWidth={2} /></div>
-          <div>
-            <div className="stat-label">Collected</div>
-            <div className="stat-value">₹{stats ? Number(stats.monthly_receipts).toLocaleString('en-IN') : '—'}</div>
-            <div className="stat-sub">Receipts this month</div>
-          </div>
+          <div className="stat-label">Collected</div>
+          <div className="stat-value numeric">₹{stats ? Number(stats.monthly_receipts).toLocaleString('en-IN') : '—'}</div>
+          <div className="stat-sub">Receipts this month</div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon red"><Clock size={20} strokeWidth={2} /></div>
-          <div>
-            <div className="stat-label">Pending Amount</div>
-            <div className="stat-value">₹{stats ? Number(stats.pending_amount).toLocaleString('en-IN') : '—'}</div>
-            <div className="stat-sub down">Outstanding</div>
-          </div>
+          <div className="stat-label">Pending Amount</div>
+          <div className="stat-value numeric">₹{stats ? Number(stats.pending_amount).toLocaleString('en-IN') : '—'}</div>
+          <div className="stat-sub down">Outstanding</div>
         </div>
       </div>
 

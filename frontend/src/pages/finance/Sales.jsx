@@ -51,7 +51,7 @@ export default function Sales() {
                   const status = pending <= 0 ? { cls: 'badge-green', label: 'Paid' } : received > 0 ? { cls: 'badge-orange', label: 'Partial' } : { cls: 'badge-red', label: 'Due' };
                   return (
                     <tr key={s.id}>
-                      <td><Link to={`/sales/${s.id}`} style={{ color: '#3b82f6', fontWeight: 700 }}>{s.invoice_no}</Link></td>
+                      <td><Link to={`/sales/${s.id}`} style={{ color: 'hsl(var(--primary))', fontWeight: 700 }}>{s.invoice_no}</Link></td>
                       <td>{s.party_name}</td>
                       <td>{s.sale_date ? new Date(s.sale_date).toLocaleDateString('en-IN') : '—'}</td>
                       <td>₹{Number(s.gross_amount).toLocaleString('en-IN')}</td>

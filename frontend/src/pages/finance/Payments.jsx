@@ -176,7 +176,7 @@ export default function Payments() {
           <div className="form-group">
             <label>Voucher No {editingId && <span className="badge badge-blue" style={{ marginLeft: 6 }}>Editing</span>}</label>
             <div style={{ display: 'flex', gap: 6 }}>
-              <input value={form.voucher_no} onChange={set('voucher_no')} style={{ background: '#eff6ff', fontWeight: 700, flex: 1 }} />
+              <input value={form.voucher_no} onChange={set('voucher_no')} style={{ background: 'hsl(var(--accent))', fontWeight: 700, flex: 1 }} />
               <button type="button" className="btn btn-outline btn-icon" title="Load payment by Voucher No" onClick={loadByVoucher}>
                 <Search size={14} />
               </button>

@@ -110,7 +110,7 @@ export default function Bookings() {
         </div>
         <div className="stat-card">
           <div className="stat-label">CONFIRMED</div>
-          <div className="stat-value" style={{color:'#2563eb'}}>{stats.confirmed || 0}</div>
+          <div className="stat-value" style={{color:'hsl(var(--primary))'}}>{stats.confirmed || 0}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">PENDING</div>

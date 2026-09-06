@@ -66,7 +66,7 @@ export default function Payroll() {
         </div>
         <div className="stat-card">
           <div className="stat-label">EMPLOYEES</div>
-          <div className="stat-value" style={{color:'#2563eb'}}>{rows.length}</div>
+          <div className="stat-value" style={{color:'hsl(var(--primary))'}}>{rows.length}</div>
         </div>
       </div>
 

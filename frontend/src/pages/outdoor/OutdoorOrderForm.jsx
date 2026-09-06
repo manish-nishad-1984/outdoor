@@ -313,7 +313,7 @@ export default function OutdoorOrderForm() {
           <div className="card-body form-grid">
             <div className="form-group">
               <label>Order No</label>
-              <input value={form.order_no} readOnly style={{ background: '#eff6ff', fontWeight: 700 }} />
+              <input value={form.order_no} readOnly style={{ background: 'hsl(var(--accent))', fontWeight: 700 }} />
             </div>
             <div className="form-group">
               <label>Date</label>
@@ -467,7 +467,7 @@ export default function OutdoorOrderForm() {
                 <tbody>
                   {items.length === 0 && <tr><td colSpan={11} className="table-empty"><p>No items added</p></td></tr>}
                   {items.map((it, i) => (
-                    <tr key={i} style={editingIndex === i ? { background: '#eff6ff' } : undefined}>
+                    <tr key={i} style={editingIndex === i ? { background: 'hsl(var(--accent))' } : undefined}>
                       <td>{fmt(it.function_date)}</td>
                       <td><strong>{it.item_name}</strong></td>
                       <td>{it.event_name || '-'}</td>
@@ -519,7 +519,7 @@ export default function OutdoorOrderForm() {
                     <thead><tr><th>Item</th><th style={{ textAlign: 'center' }}>Qnty</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr></thead>
                     <tbody>
                       {deliverables.map((d, i) => (
-                        <tr key={i} style={editingDeliverableIndex === i ? { background: '#eff6ff' } : undefined}>
+                        <tr key={i} style={editingDeliverableIndex === i ? { background: 'hsl(var(--accent))' } : undefined}>
                           <td>{d.item_name}</td>
                           <td style={{ textAlign: 'center' }}>{d.qnty}</td>
                           <td style={{ textAlign: 'right' }}>{cur(d.amount)}</td>
@@ -553,7 +553,7 @@ export default function OutdoorOrderForm() {
                 <input type="number" min={0} value={form.advance} onChange={set('advance')}
                   style={{ width: 120, textAlign: 'right', padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
               <div className="summary-row" style={{ fontSize: 15 }}>
-                <strong>Grand Total</strong><strong style={{ color: '#2563eb' }}>{cur(grandTotal)}</strong></div>
+                <strong>Grand Total</strong><strong style={{ color: 'hsl(var(--primary))' }}>{cur(grandTotal)}</strong></div>
               <div className="summary-row" style={{ borderBottom: needsBank ? undefined : 'none' }}>
                 <span>Payment</span>
                 <select value={form.payment_mode} onChange={set('payment_mode')} className="form-select" style={{ width: 130 }}>
