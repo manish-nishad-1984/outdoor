@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Save, Trash2, Printer, X, LogOut, Send, Plus, Pencil, FileDown
@@ -55,6 +55,7 @@ export default function QuotationForm() {
   const [form, setForm]     = useState({ ...EMPTY_FORM });
   const [items, setItems]   = useState([]);
   const [entry, setEntry]   = useState({ ...EMPTY_ENTRY });
+  const itemNameRef = useRef(null);
   // Explicit web state replacing the legacy AFlag/EFlag/crow trio: null = composing a
   // new row (Add), a number = the index of the row currently being edited (Update).
   const [editingIndex, setEditingIndex] = useState(null);
@@ -65,6 +66,7 @@ export default function QuotationForm() {
   const [deliverableList, setDeliverableList] = useState([]);
   const [deliverables, setDeliverables] = useState([]); // added post production item rows
   const [deliverableEntry, setDeliverableEntry] = useState({ ...EMPTY_DELIVERABLE_ENTRY });
+  const deliverableItemNameRef = useRef(null);
   const [editingDeliverableIndex, setEditingDeliverableIndex] = useState(null);
   const [clientHistory, setClientHistory] = useState([]);
   const [clientInfo, setClientInfo]     = useState(null); // { previous_pending, credit_limit, over_limit }
@@ -83,7 +85,6 @@ export default function QuotationForm() {
   // Live preview — lets staff proofread the actual client-facing document as they build the
   // quotation, instead of only seeing it after Print. Entry stays row-plus-Add-button; this
   // is purely a read-only mirror of items/deliverables/totals.
-  const [showRates, setShowRates] = useState(true);
 
   // Reference data — mirrors FrmOutdoor_Load's Fill*Combo calls.
   useEffect(() => {
@@ -212,6 +213,7 @@ export default function QuotationForm() {
     }
     setEntry({ ...EMPTY_ENTRY, function_date: entry.function_date });
     setEditingIndex(null);
+    itemNameRef.current?.focus();
   };
   const editRow = (i) => { setEntry({ ...items[i] }); setEditingIndex(i); setErr(''); };
   const cancelEntry = () => { setEntry({ ...EMPTY_ENTRY }); setEditingIndex(null); };
@@ -243,6 +245,7 @@ export default function QuotationForm() {
     }
     setDeliverableEntry({ ...EMPTY_DELIVERABLE_ENTRY });
     setEditingDeliverableIndex(null);
+    deliverableItemNameRef.current?.focus();
   };
   const editDeliverableRow = (i) => { setDeliverableEntry({ ...deliverables[i] }); setEditingDeliverableIndex(i); setErr(''); };
   const cancelDeliverableEntry = () => { setDeliverableEntry({ ...EMPTY_DELIVERABLE_ENTRY }); setEditingDeliverableIndex(null); };
@@ -256,6 +259,7 @@ export default function QuotationForm() {
   const linesTotal = items.reduce((s, it) => s + Number(it.total || 0), 0);
   const deliverablesTotal = deliverables.reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const subTotal = linesTotal + deliverablesTotal;
+  const purTotal = items.reduce((s, it) => s + (Number(it.pur_rate || 0) * Number(it.qnty || 0)), 0);
   const discount = Number(form.discount || 0);
   const taxable = subTotal - discount;
   const grandTotal = Math.round(taxable);
@@ -455,24 +459,6 @@ export default function QuotationForm() {
         </div>
       </div>
 
-      {/* Action bar — moved to the top so Save/Print/WhatsApp/etc are visible without
-          scrolling past the whole form first. */}
-      <div className="quotation-actions">
-        <button className="btn btn-primary"  onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
-        <button className="btn btn-danger"   onClick={remove}><Trash2 size={15} /> Delete</button>
-        <button className="btn btn-outline"  onClick={() => doPrint(true)}><Printer size={15} /> Print (Rate)</button>
-        <button className="btn btn-outline"  onClick={() => doPrint(false)}><Printer size={15} /> Print (W/O Rate)</button>
-        {/* Cancel resets to a blank new quotation (matches legacy CmdCancel); Exit leaves
-            the module entirely (matches legacy CmdExit / Me.Close()) — previously identical. */}
-        <button className="btn btn-ghost"    onClick={() => nav('/quotations/new')}><X size={15} /> Cancel</button>
-        <button className="btn btn-ghost"    onClick={() => nav('/quotations')}><LogOut size={15} /> Exit</button>
-        {/* Matches legacy's dedicated PDF export button on the report viewer toolbar — no
-            server-side PDF engine on the web, so this reuses the W/O Rate print letterhead
-            and relies on the browser's print dialog "Save as PDF" destination. */}
-        <button className="btn btn-outline"  onClick={() => doPrint(false)}><FileDown size={15} /> PDF</button>
-        <button className="btn btn-outline"  onClick={openWhatsApp}><Send size={15} /> WhatsApp</button>
-      </div>
-
       {err && <div className="alert alert-error" style={{ marginBottom: 12 }}>{err}</div>}
       {clientInfo?.over_limit && (
         <div className="alert alert-error" style={{ marginBottom: 12 }}>
@@ -480,7 +466,7 @@ export default function QuotationForm() {
         </div>
       )}
 
-      <div className="page-cols" style={{ gridTemplateColumns: '2.4fr 1fr' }}>
+      <div className="page-cols" style={{ gridTemplateColumns: '3fr 1fr' }}>
         {/* Header details */}
         <div className="card">
           <div className="card-header"><div className="card-title">Client &amp; Event Details</div></div>
@@ -511,12 +497,12 @@ export default function QuotationForm() {
               <input type="email" value={form.email} onChange={set('email')} />
             </div>
             <div className="form-group">
-              <label>Ref. By</label>
-              <input value={form.ref_by} onChange={set('ref_by')} />
-            </div>
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
               <label>Address</label>
               <input value={form.address} onChange={set('address')} />
+            </div>
+            <div className="form-group">
+              <label>Ref. By</label>
+              <input value={form.ref_by} onChange={set('ref_by')} />
             </div>
             <label className="checkbox-row" style={{ alignSelf: 'end', paddingBottom: 6, color: '#dc2626', fontWeight: 600 }}>
               <input type="checkbox" checked={form.display_purchase_rate}
@@ -546,14 +532,13 @@ export default function QuotationForm() {
         </div>
       </div>
 
-      <div className="quo-split" style={{ marginTop: 16 }}>
-      <div className="quo-work">
+      <div style={{ marginTop: 16 }}>
 
-      {/* Item entry row — tinted "entry panel" so it reads as distinct from the plain
-          white display/grid cards around it, with Add/Update set apart below a divider
-          instead of crammed onto the same line as the inputs. */}
-      <div className="card card-entry">
-        <div className="card-header"><div className="card-title">Add Item</div></div>
+      {/* Item entry + Items Added merged into one card — entry panel on top, grid below,
+          same pattern as the Post Production Item section. */}
+      <div className="card">
+        <div className="card-header"><div className="card-title">Items</div></div>
+        <div className="card-entry" style={{ margin: '0 -1px', borderRadius: 0 }}>
         <div className="card-body">
           <div className="entry-grid">
             <div className="form-group">
@@ -562,7 +547,7 @@ export default function QuotationForm() {
             </div>
             <div className="form-group wide">
               <label>Item Name</label>
-              <input list="item-master-list" value={entry.item_name}
+              <input ref={itemNameRef} list="item-master-list" value={entry.item_name}
                 onChange={e => onPickItem(e.target.value)} placeholder="Select / type item…" />
               <datalist id="item-master-list">
                 {itemList.map(it => <option key={it.id} value={it.item_name} />)}
@@ -598,30 +583,29 @@ export default function QuotationForm() {
                 <input type="number" min={0} value={entry.pur_rate} onChange={e => setE('pur_rate', e.target.value)} />
               </div>
             )}
-          </div>
-          <div className="entry-actions">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEntry}>Cancel</button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateEntry}>
-              {editingIndex === null ? <><Plus size={15} /> Add Item</> : 'Update Item'}
-            </button>
+            <div className="entry-actions-inline">
+              <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={cancelEntry} title="Cancel"><X size={15} /></button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateEntry}>
+                {editingIndex === null ? <><Plus size={15} /> Add Item</> : 'Update Item'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Items grid — full width so all 7 columns have room to breathe */}
-      <div className="card">
-        <div className="card-header"><div className="card-title">Items Added</div></div>
-        <div className="table-wrap" style={{ maxHeight: 220, overflowY: 'auto' }}>
+        </div>
+        <div className="card-body" style={{ paddingTop: 8, background: 'hsl(var(--accent))' }}>
+        <div className="table-wrap" style={{ maxHeight: 'none', overflow: 'visible' }}>
           <table className="data-table">
             <thead><tr>
               <th>#</th><th>Date</th><th>Item Name</th><th>Event</th>
               <th style={{ textAlign: 'center' }}>Qnty</th>
               <th style={{ textAlign: 'right' }}>Rate</th>
               <th style={{ textAlign: 'right' }}>Total</th>
+              {form.display_purchase_rate && <th className="col-purchase" style={{ textAlign: 'right' }}>Pur.Rate</th>}
+              {form.display_purchase_rate && <th className="col-purchase" style={{ textAlign: 'right' }}>Pur.Total</th>}
               <th></th>
             </tr></thead>
             <tbody>
-              {items.length === 0 && <tr><td colSpan={8} className="table-empty"><p>No items added</p></td></tr>}
+              {items.length === 0 && <tr><td colSpan={form.display_purchase_rate ? 10 : 8} className="table-empty"><p>No items added</p></td></tr>}
               {items.map((it, i) => (
                 <tr key={i} style={editingIndex === i ? { background: 'hsl(var(--accent))' } : undefined}>
                   <td>{i + 1}</td>
@@ -631,6 +615,8 @@ export default function QuotationForm() {
                   <td style={{ textAlign: 'center' }}>{it.qnty}</td>
                   <td style={{ textAlign: 'right' }}>{cur(it.rate)}</td>
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>{cur(it.total)}</td>
+                  {form.display_purchase_rate && <td className="col-purchase" style={{ textAlign: 'right' }}>{cur(it.pur_rate)}</td>}
+                  {form.display_purchase_rate && <td className="col-purchase" style={{ textAlign: 'right' }}>{cur(Number(it.pur_rate || 0) * Number(it.qnty || 0))}</td>}
                   <td>
                     <div className="action-btns">
                       <button className="btn-edit" onClick={() => editRow(i)}><Pencil size={14} /></button>
@@ -641,6 +627,7 @@ export default function QuotationForm() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       </div>
 
@@ -655,7 +642,7 @@ export default function QuotationForm() {
               <div className="entry-grid">
                 <div className="form-group wide">
                   <label>Item</label>
-                  <input list="deliverable-item-list" value={deliverableEntry.item_name}
+                  <input ref={deliverableItemNameRef} list="deliverable-item-list" value={deliverableEntry.item_name}
                     onChange={e => onPickDeliverableItem(e.target.value)} placeholder="Select / type item…" />
                   <datalist id="deliverable-item-list">
                     {deliverableList.map(d => <option key={d.id} value={d.item_name} />)}
@@ -669,12 +656,12 @@ export default function QuotationForm() {
                   <label>Amount</label>
                   <input type="number" min={0} step="0.01" value={deliverableEntry.amount} onChange={e => setDE('amount', e.target.value)} />
                 </div>
-              </div>
-              <div className="entry-actions">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={cancelDeliverableEntry}>Cancel</button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateDeliverable}>
-                  {editingDeliverableIndex === null ? <><Plus size={15} /> Add Item</> : 'Update Item'}
-                </button>
+                <div className="entry-actions-inline">
+                  <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={cancelDeliverableEntry} title="Cancel"><X size={15} /></button>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateDeliverable}>
+                    {editingDeliverableIndex === null ? <><Plus size={15} /> Add Item</> : 'Update Item'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -724,8 +711,11 @@ export default function QuotationForm() {
                 <input type="number" min={0} value={form.extra_charge} onChange={set('extra_charge')}
                   title="Extra Charge" className="summary-input" style={{ width: 70 }} />
               </div>
-              <div className="summary-row" style={{ borderBottom: 'none', fontSize: 15 }}>
-                <strong>Grand Total</strong><strong style={{ color: 'hsl(var(--primary))' }}>{cur(grandTotal)}</strong>
+              {form.display_purchase_rate && (
+                <div className="summary-row pur"><span>Pur. Total</span><strong>{cur(purTotal)}</strong></div>
+              )}
+              <div className="summary-row grand" style={{ borderBottom: 'none' }}>
+                <strong>Grand Total</strong><strong>{cur(grandTotal)}</strong>
               </div>
             </div>
           </div>
@@ -736,91 +726,29 @@ export default function QuotationForm() {
       <div className="card">
         <div className="card-body form-group">
           <label>Note</label>
-          <textarea rows={1} value={form.note} onChange={set('note')} />
+          <textarea rows={1} value={form.note} onChange={set('note')} style={{ minHeight: 36 }} />
         </div>
       </div>
 
       </div>
 
-      {/* Live preview — mirrors what the client sees on the printed/PDF/WhatsApp quotation */}
-      <div className="quo-preview-col">
-        <div className="card" style={{ marginBottom: 8 }}>
-          <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px' }}>
-            <span style={{ fontSize: 11.5, color: 'var(--color-muted-foreground)' }}>Client sees</span>
-            <div className="quo-rate-toggle" style={{ marginLeft: 'auto' }}>
-              <button type="button" className={showRates ? 'on' : ''} onClick={() => setShowRates(true)}>With rates</button>
-              <button type="button" className={!showRates ? 'on' : ''} onClick={() => setShowRates(false)}>Without rates</button>
-            </div>
-          </div>
-        </div>
-
-        <div className="quo-doc">
-          <div className="quo-doc-head">
-            <div>
-              <h3>{studio.name}</h3>
-              <div className="quo-doc-sub">Outdoor photography and event coverage</div>
-            </div>
-            <div className="quo-doc-meta">
-              Quotation #{form.quo_no}<br />
-              {fmt2(form.quo_date)}
-            </div>
-          </div>
-
-          <div className="quo-doc-to">Prepared for</div>
-          <div className="quo-doc-name">{form.client_name || '—'}</div>
-          <div className="quo-doc-contact">{form.contact_no}</div>
-
-          {(items.length + deliverables.length) > 0 ? (
-            <table className="quo-doc-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '48%' }}>Item</th>
-                  <th style={{ width: '14%' }}>Date</th>
-                  <th className="c" style={{ width: '8%' }}>Qty</th>
-                  {showRates && <th className="r" style={{ width: '15%' }}>Rate</th>}
-                  {showRates && <th className="r" style={{ width: '15%' }}>Total</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((it, i) => (
-                  <tr key={'i' + i}>
-                    <td><strong style={{ fontWeight: 600 }}>{it.item_name}</strong><span className="ev">{it.event_name}</span></td>
-                    <td style={{ fontSize: 12, color: '#6A6A6A' }}>{fmt2(it.function_date)}</td>
-                    <td className="c">{it.qnty || 1}</td>
-                    {showRates && <td className="r">{cur(it.rate)}</td>}
-                    {showRates && <td className="r" style={{ fontWeight: 600 }}>{cur(it.total)}</td>}
-                  </tr>
-                ))}
-                {deliverables.map((d, i) => (
-                  <tr key={'d' + i}>
-                    <td><strong style={{ fontWeight: 600 }}>{d.item_name}</strong><span className="ev">Post production</span></td>
-                    <td style={{ fontSize: 12, color: '#6A6A6A' }}>—</td>
-                    <td className="c">{d.qnty || 1}</td>
-                    {showRates && <td className="r">{cur(d.amount)}</td>}
-                    {showRates && <td className="r" style={{ fontWeight: 600 }}>{cur(d.amount)}</td>}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="quo-doc-empty">Add a line item to see it here.</div>
-          )}
-
-          {showRates && (
-            <div className="quo-doc-totals">
-              <div><span>Items</span><span>{cur(linesTotal)}</span></div>
-              {deliverablesTotal > 0 && <div><span>Post production</span><span>{cur(deliverablesTotal)}</span></div>}
-              {discount > 0 && <div><span>Discount</span><span>−{cur(discount)}</span></div>}
-              {Number(form.extra_charge) > 0 && <div><span>Extra charge</span><span>{cur(form.extra_charge)}</span></div>}
-              <div className="quo-doc-grand"><span>Grand total</span><strong>{cur(grandTotal)}</strong></div>
-            </div>
-          )}
-
-          {form.note && <div className="quo-doc-note">{form.note}</div>}
-        </div>
+      {/* Action bar — footer, so it reads as the form's final step after everything above it. */}
+      <div className="quotation-actions">
+        <button className="btn btn-primary"  onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
+        <button className="btn btn-danger"   onClick={remove}><Trash2 size={15} /> Delete</button>
+        <button className="btn btn-outline"  onClick={() => doPrint(true)}><Printer size={15} /> Print (Rate)</button>
+        <button className="btn btn-outline"  onClick={() => doPrint(false)}><Printer size={15} /> Print (W/O Rate)</button>
+        {/* Cancel resets to a blank new quotation (matches legacy CmdCancel); Exit leaves
+            the module entirely (matches legacy CmdExit / Me.Close()) — previously identical. */}
+        <button className="btn btn-ghost"    onClick={() => nav('/quotations/new')}><X size={15} /> Cancel</button>
+        <button className="btn btn-ghost"    onClick={() => nav('/quotations')}><LogOut size={15} /> Exit</button>
+        {/* Matches legacy's dedicated PDF export button on the report viewer toolbar — no
+            server-side PDF engine on the web, so this reuses the W/O Rate print letterhead
+            and relies on the browser's print dialog "Save as PDF" destination. */}
+        <button className="btn btn-outline"  onClick={() => doPrint(false)}><FileDown size={15} /> PDF</button>
+        <button className="btn btn-outline"  onClick={openWhatsApp}><Send size={15} /> WhatsApp</button>
       </div>
 
-      </div>
     </div>
   );
 }

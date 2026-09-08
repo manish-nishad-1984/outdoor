@@ -425,7 +425,10 @@ body {
 .data-table th { @apply sticky top-0 z-10 px-3 py-2 text-left text-2xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap bg-muted/70 backdrop-blur; }
 .data-table td { @apply px-3 py-2 border-b border-border/70 text-sm align-middle text-foreground; }
 .data-table tbody tr:last-child td { @apply border-b-0; }
+.data-table tbody tr:nth-child(even) td { @apply bg-muted/25; }
 .data-table tbody tr:hover td { @apply bg-accent/50; }
+.col-purchase { @apply bg-status-warning/10; }
+th.col-purchase { @apply text-status-warning; }
 .action-btns   { @apply flex gap-[2px] items-center; }
 
 table { @apply w-full border-collapse; }
@@ -517,7 +520,7 @@ tbody tr:hover td { @apply bg-accent/50; }
 .qitem-entry-btns { @apply flex gap-2 items-center pb-[1px]; }
 
 /* Quotation action bar */
-.quotation-actions { @apply flex flex-wrap gap-2 mb-4 p-[14px] bg-muted/50 border border-border rounded-lg; }
+.quotation-actions { @apply flex flex-wrap gap-2 mt-4 p-[14px] bg-muted/50 border border-border rounded-lg; }
 .quotation-actions .btn { @apply flex-1 justify-center min-w-[120px]; }
 
 /* Quotation entry panels — a visually distinct "you type here" surface, tinted apart
@@ -532,6 +535,8 @@ tbody tr:hover td { @apply bg-accent/50; }
 }
 .entry-grid .form-group.wide { grid-column: span 2; }
 .entry-actions { @apply flex items-center justify-end gap-2 pt-3 mt-1 border-t border-border/70; }
+.entry-grid .entry-actions-inline { @apply flex items-center gap-2; }
+.entry-actions-inline .btn-icon.btn-sm { @apply h-8 w-8; }
 
 /* Compact layout — scoped to the Quotation form only, so it can fit one screen without
    the whole page needing to scroll (matching the legacy dialog, which was a fixed-size
@@ -539,8 +544,8 @@ tbody tr:hover td { @apply bg-accent/50; }
    inside that section instead of growing the page. */
 .quotation-form .card { margin-bottom: 14px; }
 .quotation-form .card-body { padding: 14px 16px; }
-.quotation-form .card-header { padding: 11px 16px; }
-.quotation-form .form-grid { gap: 14px 16px; }
+.quotation-form .card-header { padding: 11px 16px; background-color: darkseagreen; }
+.quotation-form .form-grid { gap: 14px 16px; background-color: #bbddd84f; grid-template-columns: repeat(3, 1fr); }
 body:has(.quotation-form) .content { padding: 20px 24px; }
 .quotation-form .form-group { gap: 5px; }
 .quotation-form .form-group label { font-size: 12px; }
@@ -550,9 +555,10 @@ body:has(.quotation-form) .content { padding: 20px 24px; }
 .quotation-form .form-select { height: 36px; padding: 0 10px; font-size: 13.5px; }
 .quotation-form .qitem-entry { gap: 10px; }
 .quotation-form .summary-row { padding: 9px 14px; font-size: 13.5px; }
-.quotation-form .data-table th { padding: 8px 10px; font-size: 11px; }
+.quotation-form .data-table thead { background-color: #5f9ea036; }
+.quotation-form .data-table th { padding: 8px 10px; font-size: 11px; background-color: #5f9ea036; }
 .quotation-form .data-table td { padding: 8px 10px; font-size: 13.5px; }
-.quotation-form .quotation-actions { padding: 10px; margin-bottom: 16px; }
+.quotation-form .quotation-actions { padding: 10px; margin-top: 16px; margin-bottom: 0; }
 .quotation-form .quotation-actions .btn { padding: 9px 14px; font-size: 13px; min-width: 100px; height: auto; }
 .quotation-form .entry-grid { gap: 12px; }
 .quotation-form .entry-actions { padding-top: 12px; margin-top: 4px; }
@@ -615,6 +621,9 @@ body:has(.quotation-form) .content { padding: 20px 24px; }
 .summary-box { @apply border border-border rounded-md overflow-hidden; }
 .summary-row { @apply flex justify-between items-center px-[14px] py-[9px] border-b border-border/70 text-sm text-foreground; }
 .summary-row:last-child { @apply border-b-0 font-semibold text-sm text-foreground bg-muted/50; }
+.summary-row.pur { @apply bg-status-warning/10 text-status-warning font-medium; }
+.summary-row.grand { @apply bg-primary/10 border-y border-primary/20 py-3 font-semibold; }
+.summary-row.grand strong:last-child { @apply text-primary text-base; }
 .summary-input { @apply h-7 px-2 text-right text-sm border border-input rounded bg-card text-foreground outline-none
                         focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background; }
 
