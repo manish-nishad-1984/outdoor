@@ -10,3 +10,6 @@ migration/uploads/
 migration/migration.log
 legacy/
 /ShreeHari-Solar-main/
+
+# Old .NET solution from before the Node rewrite (kept locally only)
+/backend/src/
