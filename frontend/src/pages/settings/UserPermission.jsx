@@ -37,7 +37,6 @@ const TABS = [
       { label: 'Receipt',           cols: { open: 'bill_receipt_open',     insert: 'bill_receipt_insert',     update: 'bill_receipt_update',     delete: 'bill_receipt_delete',     print: 'bill_receipt_print' } },
       { label: 'Bill Book Master',  cols: { open: 'bill_book_master_open', insert: 'bill_book_master_insert', update: 'bill_book_master_update', delete: 'bill_book_master_delete' } },
       { label: 'Appointment Report',   cols: { open: 'bill_appointment_report' } },
-      { label: 'Studio Order Report',  cols: { open: 'bill_studio_order_report' } },
       { label: 'Studio Bill Report',   cols: { open: 'bill_studio_bill_report' } },
       { label: 'Customer Report',      cols: { open: 'bill_customer_report' } },
       { label: 'Search Report',        cols: { open: 'bill_search_report' } },

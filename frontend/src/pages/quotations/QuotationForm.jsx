@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Save, Trash2, Printer, X, LogOut, Send, Plus, Pencil, FileDown
+  Save, Trash2, Printer, X, Send, Plus, Pencil, FileDown, ArrowLeft, Check, ChevronDown, ChevronUp
 } from 'lucide-react';
 import api from '../../api/axios';
+import '../../components/docForm.css';
 
 const EVENTS = ['Wedding','Reception','Engagement','Haldi','Mehndi','Sangeet',
   'Pre-Wedding','Ring Ceremony','Baby Shower','Birthday','Other'];
@@ -82,6 +83,9 @@ export default function QuotationForm() {
   const [saving, setSaving]   = useState(false);
   const [err, setErr]         = useState('');
   const [studio, setStudio]   = useState(DEFAULT_STUDIO);
+  // Rarely-used fields stay folded away so the form opens with only what most quotations need.
+  const [showMore, setShowMore] = useState(false);
+  const [showCameraCol, setShowCameraCol] = useState(false);
   // Live preview — lets staff proofread the actual client-facing document as they build the
   // quotation, instead of only seeing it after Print. Entry stays row-plus-Add-button; this
   // is purely a read-only mirror of items/deliverables/totals.
@@ -144,11 +148,25 @@ export default function QuotationForm() {
           qnty: Number(d.qnty) || 0, amount: Number(d.amount) || 0,
         })));
         setPreviousPending(Number(q.previous_pending) || 0);
+        if (q.address || q.email || q.ref_by) setShowMore(true);
       }).catch(() => setErr('Failed to load quotation'));
     } else {
-      api.get('/quotations/next-no').then(r => setForm(f => ({ ...f, quo_no: r.data.next }))).catch(() => {});
+      resetNew();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEdit]);
+
+  // Blank new quotation. The /new and /:id routes share this component instance, so going
+  // from an edit to "New" must clear state explicitly rather than rely on a remount.
+  function resetNew() {
+    setForm({ ...EMPTY_FORM, quo_date: today() });
+    setItems([]); setDeliverables([]);
+    setEntry({ ...EMPTY_ENTRY, function_date: today() }); setEditingIndex(null);
+    setDeliverableEntry({ ...EMPTY_DELIVERABLE_ENTRY }); setEditingDeliverableIndex(null);
+    setClientHistory([]); setClientInfo(null); setPreviousPending(0);
+    setClientId(null); setUpdatedAt(null); setErr(''); setShowMore(false);
+    api.get('/quotations/next-no').then(r => setForm(f => ({ ...f, quo_no: r.data.next }))).catch(() => {});
+  }
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -282,6 +300,15 @@ export default function QuotationForm() {
     finally { setSaving(false); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, items, deliverables, clientId, updatedAt, isEdit, id]);
+
+  // Ctrl+S saves from anywhere on the form.
+  useEffect(() => {
+    const onKey = e => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [save]);
 
   const remove = async () => {
     if (!isEdit) return nav('/quotations');
@@ -450,305 +477,237 @@ export default function QuotationForm() {
     `Quotation ${form.quo_no}\nClient: ${form.client_name}\n${itemLines}\nSub Total: ${cur(subTotal)}\nDiscount: ${cur(discount)}\nGrand Total: ${cur(grandTotal)}`);
   const openWhatsApp = () => window.open(`https://wa.me/${digits ? '91'+digits : ''}?text=${shareText}`, '_blank');
 
+
+  const showCamera = showCameraCol || items.some(it => it.camera_model);
+  const showPur = form.display_purchase_rate;
+  const onEntryKey = add => e => { if (e.key === 'Enter') { e.preventDefault(); add(); } };
+
   return (
-    <div className="page-container quotation-form">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Quotation</h1>
-          <p className="page-subtitle">{isEdit ? `Editing Quo No ${form.quo_no}` : `New — Quo No ${form.quo_no}`}</p>
-        </div>
+    <div className="qf">
+      <div className="qf-top">
+        <button type="button" className="qf-back" onClick={() => nav('/quotations')} title="Back to list"><ArrowLeft size={18} /></button>
+        <h1>{isEdit ? 'Edit Quotation' : 'New Quotation'}</h1>
+        <span className="qf-no">#{form.quo_no}</span>
+        <span className="qf-top-hint">Ctrl+S to save</span>
       </div>
 
-      {err && <div className="alert alert-error" style={{ marginBottom: 12 }}>{err}</div>}
+      {err && <div className="alert alert-error qf-alert">{err}</div>}
       {clientInfo?.over_limit && (
-        <div className="alert alert-error" style={{ marginBottom: 12 }}>
+        <div className="alert alert-error qf-alert">
           Customer's previous pending amount ({cur(previousPending)}) is more than their credit limit ({cur(clientInfo.credit_limit)})
         </div>
       )}
 
-      <div className="page-cols" style={{ gridTemplateColumns: '3fr 1fr' }}>
-        {/* Header details */}
-        <div className="card">
-          <div className="card-header"><div className="card-title">Client &amp; Event Details</div></div>
-          <div className="card-body form-grid">
-            <div className="form-group">
-              <label>Quo No</label>
-              <input value={form.quo_no} readOnly style={{ background: 'hsl(var(--accent))', fontWeight: 700 }} />
+      <div className="qf-grid">
+        <div className="qf-main">
+          {/* 1 — who the quotation is for */}
+          <section className="qf-card">
+            <h2 className="qf-sec"><span className="qf-step">1</span> Client</h2>
+            <div className="qf-fields">
+              <label className="qf-field qf-span2">
+                <span>Client Name *</span>
+                <input list="qf-client-list" value={form.client_name} onChange={set('client_name')} onBlur={onClientBlur}
+                  placeholder="Type or pick a client" autoFocus={!isEdit} />
+                <datalist id="qf-client-list">{clientList.map(c => <option key={c.id} value={c.account_name} />)}</datalist>
+              </label>
+              <label className="qf-field">
+                <span>Mobile No</span>
+                <input value={form.contact_no} onChange={set('contact_no')} inputMode="tel" />
+              </label>
+              <label className="qf-field">
+                <span>Date</span>
+                <input type="date" value={form.quo_date} onChange={set('quo_date')} />
+              </label>
+              <label className="qf-field qf-span2">
+                <span>Couple Name</span>
+                <input value={form.couple_name} onChange={set('couple_name')} />
+              </label>
+              {showMore && <>
+                <label className="qf-field qf-span2">
+                  <span>Address</span>
+                  <input value={form.address} onChange={set('address')} />
+                </label>
+                <label className="qf-field">
+                  <span>Email</span>
+                  <input type="email" value={form.email} onChange={set('email')} />
+                </label>
+                <label className="qf-field">
+                  <span>Ref. By</span>
+                  <input value={form.ref_by} onChange={set('ref_by')} />
+                </label>
+              </>}
             </div>
-            <div className="form-group">
-              <label>Date</label>
-              <input type="date" value={form.quo_date} onChange={set('quo_date')} />
-            </div>
-            <div className="form-group">
-              <label>Client Name *</label>
-              <input list="qf-client-list" value={form.client_name} onChange={set('client_name')} onBlur={onClientBlur} required />
-              <datalist id="qf-client-list">{clientList.map(c => <option key={c.id} value={c.account_name} />)}</datalist>
-            </div>
-            <div className="form-group">
-              <label>Contact No</label>
-              <input value={form.contact_no} onChange={set('contact_no')} />
-            </div>
-            <div className="form-group">
-              <label>Couple Name</label>
-              <input value={form.couple_name} onChange={set('couple_name')} />
-            </div>
-            <div className="form-group">
-              <label>Email</label>
-              <input type="email" value={form.email} onChange={set('email')} />
-            </div>
-            <div className="form-group">
-              <label>Address</label>
-              <input value={form.address} onChange={set('address')} />
-            </div>
-            <div className="form-group">
-              <label>Ref. By</label>
-              <input value={form.ref_by} onChange={set('ref_by')} />
-            </div>
-            <label className="checkbox-row" style={{ alignSelf: 'end', paddingBottom: 6, color: '#dc2626', fontWeight: 600 }}>
-              <input type="checkbox" checked={form.display_purchase_rate}
-                onChange={e => setForm(f => ({ ...f, display_purchase_rate: e.target.checked }))} />
-              <span>Display Purchase Rate</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Client's quotation history */}
-        <div className="card">
-          <div className="card-header"><div className="card-title">This Client's Quotations</div></div>
-          <div className="table-wrap" style={{ maxHeight: 110, overflowY: 'auto' }}>
-            <table className="data-table">
-              <thead><tr><th>Quo.No</th><th>Date</th></tr></thead>
-              <tbody>
-                {clientHistory.length === 0 && <tr><td colSpan={2} style={{ color: '#9ca3af', padding: 12 }}>None yet</td></tr>}
-                {clientHistory.map(r => (
-                  <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => nav(`/quotations/${r.id}`)}>
-                    <td><span className="badge badge-blue">{r.quo_no}</span></td>
-                    <td>{fmt(r.quo_date)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 16 }}>
-
-      {/* Item entry + Items Added merged into one card — entry panel on top, grid below,
-          same pattern as the Post Production Item section. */}
-      <div className="card">
-        <div className="card-header"><div className="card-title">Items</div></div>
-        <div className="card-entry" style={{ margin: '0 -1px', borderRadius: 0 }}>
-        <div className="card-body">
-          <div className="entry-grid">
-            <div className="form-group">
-              <label>Function Date</label>
-              <input type="date" value={entry.function_date} onChange={e => setE('function_date', e.target.value)} />
-            </div>
-            <div className="form-group wide">
-              <label>Item Name</label>
-              <input ref={itemNameRef} list="item-master-list" value={entry.item_name}
-                onChange={e => onPickItem(e.target.value)} placeholder="Select / type item…" />
-              <datalist id="item-master-list">
-                {itemList.map(it => <option key={it.id} value={it.item_name} />)}
-              </datalist>
-            </div>
-            <div className="form-group">
-              <label>Event Name</label>
-              <input list="event-list" value={entry.event_name}
-                onChange={e => setE('event_name', e.target.value)} placeholder="Event…" />
-              <datalist id="event-list">
-                {(eventList.length ? eventList : EVENTS).map(ev => <option key={ev} value={ev} />)}
-              </datalist>
-            </div>
-            <div className="form-group">
-              <label>Qnty</label>
-              <input type="number" min={0} value={entry.qnty} onChange={e => setE('qnty', e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Rate</label>
-              <input type="number" min={0} step="0.01" value={entry.rate} onChange={e => setE('rate', e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Total</label>
-              <input value={cur(entry.total)} readOnly style={{ background: 'hsl(var(--muted))', fontWeight: 600 }} />
-            </div>
-            <div className="form-group">
-              <label>Camera Model</label>
-              <input value={entry.camera_model} onChange={e => setE('camera_model', e.target.value)} />
-            </div>
-            {form.display_purchase_rate && (
-              <div className="form-group">
-                <label>Pur.Rate</label>
-                <input type="number" min={0} value={entry.pur_rate} onChange={e => setE('pur_rate', e.target.value)} />
-              </div>
-            )}
-            <div className="entry-actions-inline">
-              <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={cancelEntry} title="Cancel"><X size={15} /></button>
-              <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateEntry}>
-                {editingIndex === null ? <><Plus size={15} /> Add Item</> : 'Update Item'}
+            <div className="qf-sec-foot">
+              <button type="button" className="qf-link" onClick={() => setShowMore(v => !v)}>
+                {showMore ? <><ChevronUp size={14} /> Fewer details</> : <><ChevronDown size={14} /> Address, Email, Ref. By</>}
               </button>
+              {clientHistory.length > 0 && (
+                <div className="qf-history">
+                  <span>Earlier quotations:</span>
+                  {clientHistory.map(r => (
+                    <button type="button" key={r.id} onClick={() => nav(`/quotations/${r.id}`)} title={fmt(r.quo_date)}>#{r.quo_no}</button>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-        </div>
-        <div className="card-body" style={{ paddingTop: 8, background: 'hsl(var(--accent))' }}>
-        <div className="table-wrap" style={{ maxHeight: 'none', overflow: 'visible' }}>
-          <table className="data-table">
-            <thead><tr>
-              <th>#</th><th>Date</th><th>Item Name</th><th>Event</th>
-              <th style={{ textAlign: 'center' }}>Qnty</th>
-              <th style={{ textAlign: 'right' }}>Rate</th>
-              <th style={{ textAlign: 'right' }}>Total</th>
-              {form.display_purchase_rate && <th className="col-purchase" style={{ textAlign: 'right' }}>Pur.Rate</th>}
-              {form.display_purchase_rate && <th className="col-purchase" style={{ textAlign: 'right' }}>Pur.Total</th>}
-              <th></th>
-            </tr></thead>
-            <tbody>
-              {items.length === 0 && <tr><td colSpan={form.display_purchase_rate ? 10 : 8} className="table-empty"><p>No items added</p></td></tr>}
-              {items.map((it, i) => (
-                <tr key={i} style={editingIndex === i ? { background: 'hsl(var(--accent))' } : undefined}>
-                  <td>{i + 1}</td>
-                  <td>{fmt(it.function_date)}</td>
-                  <td><strong>{it.item_name}</strong></td>
-                  <td>{it.event_name || '-'}</td>
-                  <td style={{ textAlign: 'center' }}>{it.qnty}</td>
-                  <td style={{ textAlign: 'right' }}>{cur(it.rate)}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{cur(it.total)}</td>
-                  {form.display_purchase_rate && <td className="col-purchase" style={{ textAlign: 'right' }}>{cur(it.pur_rate)}</td>}
-                  {form.display_purchase_rate && <td className="col-purchase" style={{ textAlign: 'right' }}>{cur(Number(it.pur_rate || 0) * Number(it.qnty || 0))}</td>}
-                  <td>
-                    <div className="action-btns">
-                      <button className="btn-edit" onClick={() => editRow(i)}><Pencil size={14} /></button>
-                      <button className="btn-danger-soft" onClick={() => delRow(i)}><Trash2 size={14} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        </div>
-      </div>
+          </section>
 
-      {/* Post Production Item (entry + grid) paired with Summary — both are naturally
-          narrower content, so they sit side by side instead of each fighting for full width. */}
-      <div className="page-cols" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'start' }}>
-        {/* Post Production Item — add/remove entry, same tinted-panel pattern as Item entry */}
-        <div className="card">
-          <div className="card-header"><div className="card-title">Post Production Item</div></div>
-          <div className="card-entry" style={{ margin: '0 -1px', borderRadius: 0 }}>
-            <div className="card-body" style={{ paddingBottom: 10 }}>
-              <div className="entry-grid">
-                <div className="form-group wide">
-                  <label>Item</label>
-                  <input ref={deliverableItemNameRef} list="deliverable-item-list" value={deliverableEntry.item_name}
-                    onChange={e => onPickDeliverableItem(e.target.value)} placeholder="Select / type item…" />
-                  <datalist id="deliverable-item-list">
-                    {deliverableList.map(d => <option key={d.id} value={d.item_name} />)}
-                  </datalist>
-                </div>
-                <div className="form-group">
-                  <label>Qnty</label>
-                  <input type="number" min={0} value={deliverableEntry.qnty} onChange={e => setDE('qnty', e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Amount</label>
-                  <input type="number" min={0} step="0.01" value={deliverableEntry.amount} onChange={e => setDE('amount', e.target.value)} />
-                </div>
-                <div className="entry-actions-inline">
-                  <button type="button" className="btn btn-ghost btn-sm btn-icon" onClick={cancelDeliverableEntry} title="Cancel"><X size={15} /></button>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateDeliverable}>
-                    {editingDeliverableIndex === null ? <><Plus size={15} /> Add Item</> : 'Update Item'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="card-body" style={{ paddingTop: 8 }}>
-            <div className="table-wrap" style={{ maxHeight: 160, overflowY: 'auto' }}>
-              <table className="data-table">
+          {/* 2 — shoot items; the last row of the table is where a new item is typed */}
+          <section className="qf-card">
+            <h2 className="qf-sec">
+              <span className="qf-step">2</span> Items
+              <span className="qf-sec-tools">
+                <label><input type="checkbox" checked={showCamera} disabled={items.some(it => it.camera_model)}
+                  onChange={e => setShowCameraCol(e.target.checked)} /> Camera</label>
+                <label><input type="checkbox" checked={showPur}
+                  onChange={e => setForm(f => ({ ...f, display_purchase_rate: e.target.checked }))} /> Purchase rate</label>
+              </span>
+            </h2>
+            <div className="qf-table-wrap">
+              <table className="qf-table">
                 <thead><tr>
-                  <th>#</th><th>Item</th>
-                  <th style={{ textAlign: 'center' }}>Qnty</th>
-                  <th style={{ textAlign: 'right' }}>Amount</th>
-                  <th></th>
+                  <th style={{ width: 140 }}>Date</th>
+                  <th>Item</th>
+                  <th style={{ width: 150 }}>Event</th>
+                  <th className="r" style={{ width: 70 }}>Qty</th>
+                  <th className="r" style={{ width: 100 }}>Rate</th>
+                  {showCamera && <th style={{ width: 120 }}>Camera</th>}
+                  {showPur && <th className="r" style={{ width: 96 }}>Pur. Rate</th>}
+                  <th className="r" style={{ width: 100 }}>Amount</th>
+                  <th style={{ width: 96 }}></th>
                 </tr></thead>
                 <tbody>
-                  {deliverables.length === 0 && <tr><td colSpan={5} className="table-empty"><p>No post production items added</p></td></tr>}
-                  {deliverables.map((d, i) => (
-                    <tr key={i} style={editingDeliverableIndex === i ? { background: 'hsl(var(--accent))' } : undefined}>
-                      <td>{i + 1}</td>
-                      <td><strong>{d.item_name}</strong></td>
-                      <td style={{ textAlign: 'center' }}>{d.qnty}</td>
-                      <td style={{ textAlign: 'right' }}>{cur(d.amount)}</td>
-                      <td>
-                        <div className="action-btns">
-                          <button className="btn-edit" onClick={() => editDeliverableRow(i)}><Pencil size={14} /></button>
-                          <button className="btn-danger-soft" onClick={() => delDeliverableRow(i)}><Trash2 size={14} /></button>
-                        </div>
+                  {items.map((it, i) => (
+                    <tr key={i} className={editingIndex === i ? 'editing' : undefined}>
+                      <td>{fmt(it.function_date)}</td>
+                      <td className="b">{it.item_name}</td>
+                      <td>{it.event_name || '-'}</td>
+                      <td className="r">{it.qnty}</td>
+                      <td className="r">{cur(it.rate)}</td>
+                      {showCamera && <td>{it.camera_model || '-'}</td>}
+                      {showPur && <td className="r pur">{cur(it.pur_rate)}</td>}
+                      <td className="r b">{cur(it.total)}</td>
+                      <td className="acts">
+                        <button type="button" onClick={() => editRow(i)} title="Edit"><Pencil size={14} /></button>
+                        <button type="button" className="del" onClick={() => delRow(i)} title="Remove"><Trash2 size={14} /></button>
                       </td>
                     </tr>
                   ))}
+                  <tr className="qf-entry" onKeyDown={onEntryKey(addOrUpdateEntry)}>
+                    <td><input type="date" value={entry.function_date} onChange={e => setE('function_date', e.target.value)} /></td>
+                    <td>
+                      <input ref={itemNameRef} list="item-master-list" value={entry.item_name}
+                        onChange={e => onPickItem(e.target.value)} placeholder="Item…" />
+                      <datalist id="item-master-list">{itemList.map(it => <option key={it.id} value={it.item_name} />)}</datalist>
+                    </td>
+                    <td>
+                      <input list="event-list" value={entry.event_name} onChange={e => setE('event_name', e.target.value)} placeholder="Event…" />
+                      <datalist id="event-list">{(eventList.length ? eventList : EVENTS).map(ev => <option key={ev} value={ev} />)}</datalist>
+                    </td>
+                    <td><input className="r" type="number" min={0} value={entry.qnty} onChange={e => setE('qnty', e.target.value)} /></td>
+                    <td><input className="r" type="number" min={0} step="0.01" value={entry.rate} onChange={e => setE('rate', e.target.value)} /></td>
+                    {showCamera && <td><input value={entry.camera_model} onChange={e => setE('camera_model', e.target.value)} /></td>}
+                    {showPur && <td><input className="r" type="number" min={0} value={entry.pur_rate} onChange={e => setE('pur_rate', e.target.value)} /></td>}
+                    <td className="r b">{cur(entry.total)}</td>
+                    <td className="acts">
+                      <button type="button" className="add" onClick={addOrUpdateEntry} title="Add (Enter)">
+                        {editingIndex === null ? <><Plus size={14} /> Add</> : <><Check size={14} /> Update</>}
+                      </button>
+                      {editingIndex !== null && <button type="button" onClick={cancelEntry} title="Cancel edit"><X size={14} /></button>}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
-          </div>
+            {items.length === 0 && <p className="qf-hint">Fill the row above and press <kbd>Enter</kbd> to add an item.</p>}
+          </section>
+
+          {/* 3 — post production (album, video…) */}
+          <section className="qf-card">
+            <h2 className="qf-sec"><span className="qf-step">3</span> Post Production <small>album, video, frames…</small></h2>
+            <div className="qf-table-wrap">
+              <table className="qf-table">
+                <thead><tr>
+                  <th>Item</th>
+                  <th className="r" style={{ width: 70 }}>Qty</th>
+                  <th className="r" style={{ width: 110 }}>Amount</th>
+                  <th style={{ width: 96 }}></th>
+                </tr></thead>
+                <tbody>
+                  {deliverables.map((d, i) => (
+                    <tr key={i} className={editingDeliverableIndex === i ? 'editing' : undefined}>
+                      <td className="b">{d.item_name}</td>
+                      <td className="r">{d.qnty}</td>
+                      <td className="r b">{cur(d.amount)}</td>
+                      <td className="acts">
+                        <button type="button" onClick={() => editDeliverableRow(i)} title="Edit"><Pencil size={14} /></button>
+                        <button type="button" className="del" onClick={() => delDeliverableRow(i)} title="Remove"><Trash2 size={14} /></button>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="qf-entry" onKeyDown={onEntryKey(addOrUpdateDeliverable)}>
+                    <td>
+                      <input ref={deliverableItemNameRef} list="deliverable-item-list" value={deliverableEntry.item_name}
+                        onChange={e => onPickDeliverableItem(e.target.value)} placeholder="Album, video…" />
+                      <datalist id="deliverable-item-list">{deliverableList.map(d => <option key={d.id} value={d.item_name} />)}</datalist>
+                    </td>
+                    <td><input className="r" type="number" min={0} value={deliverableEntry.qnty} onChange={e => setDE('qnty', e.target.value)} /></td>
+                    <td><input className="r" type="number" min={0} step="0.01" value={deliverableEntry.amount} onChange={e => setDE('amount', e.target.value)} /></td>
+                    <td className="acts">
+                      <button type="button" className="add" onClick={addOrUpdateDeliverable} title="Add (Enter)">
+                        {editingDeliverableIndex === null ? <><Plus size={14} /> Add</> : <><Check size={14} /> Update</>}
+                      </button>
+                      {editingDeliverableIndex !== null && <button type="button" onClick={cancelDeliverableEntry} title="Cancel edit"><X size={14} /></button>}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="qf-card">
+            <label className="qf-field">
+              <span>Note / Remark (prints on the quotation)</span>
+              <textarea rows={2} value={form.note} onChange={set('note')} />
+            </label>
+          </section>
         </div>
 
-        <div className="card card-totals">
-          <div className="card-header"><div className="card-title">Summary</div></div>
-          <div className="card-body">
-            <div className="summary-box">
-              <div className="summary-row"><span>Sub Total</span><strong>{cur(subTotal)}</strong></div>
-              <div className="summary-row">
-                <span>Discount</span>
-                <input type="number" min={0} value={form.discount} onChange={set('discount')}
-                  title="Discount amount" className="summary-input" style={{ width: 90 }} />
-              </div>
-              <div className="summary-row">
-                <span>Extra Charge</span>
-                <input type="number" min={0} value={form.extra_charge} onChange={set('extra_charge')}
-                  title="Extra Charge" className="summary-input" style={{ width: 70 }} />
-              </div>
-              {form.display_purchase_rate && (
-                <div className="summary-row pur"><span>Pur. Total</span><strong>{cur(purTotal)}</strong></div>
-              )}
-              <div className="summary-row grand" style={{ borderBottom: 'none' }}>
-                <strong>Grand Total</strong><strong>{cur(grandTotal)}</strong>
-              </div>
+        {/* Totals and every action in one sticky panel, so the next step is always in view */}
+        <aside className="qf-side">
+          <div className="qf-card qf-sum">
+            <h2 className="qf-sec">Summary</h2>
+            <div className="qf-sum-row"><span>Items ({items.length})</span><span>{cur(linesTotal)}</span></div>
+            <div className="qf-sum-row"><span>Post production ({deliverables.length})</span><span>{cur(deliverablesTotal)}</span></div>
+            <div className="qf-sum-row strong"><span>Sub Total</span><span>{cur(subTotal)}</span></div>
+            <label className="qf-sum-row"><span>Discount (₹)</span>
+              <input type="number" min={0} value={form.discount} onChange={set('discount')} /></label>
+            <label className="qf-sum-row"><span>Extra Charge (₹)</span>
+              <input type="number" min={0} value={form.extra_charge} onChange={set('extra_charge')} /></label>
+            {showPur && <div className="qf-sum-row pur"><span>Purchase Total</span><span>{cur(purTotal)}</span></div>}
+            <div className="qf-grand"><span>Grand Total</span><strong>{cur(grandTotal)}</strong></div>
+
+            <button type="button" className="btn btn-primary qf-save" onClick={save} disabled={saving}>
+              <Save size={16} /> {saving ? 'Saving…' : 'Save Quotation'}
+            </button>
+            <div className="qf-actions">
+              <details className="qf-menu">
+                <summary className="btn btn-outline"><Printer size={15} /> Print <ChevronDown size={14} /></summary>
+                <div className="qf-menu-list" onClick={e => e.currentTarget.parentElement.removeAttribute('open')}>
+                  <button type="button" onClick={() => doPrint(true)}><Printer size={14} /> With rates</button>
+                  <button type="button" onClick={() => doPrint(false)}><Printer size={14} /> Without rates</button>
+                  <button type="button" onClick={() => doPrint(false)}><FileDown size={14} /> Save as PDF</button>
+                </div>
+              </details>
+              <button type="button" className="btn btn-outline" onClick={openWhatsApp}><Send size={15} /> WhatsApp</button>
+            </div>
+            <div className="qf-actions-sub">
+              <button type="button" onClick={() => (isEdit ? nav('/quotations/new') : resetNew())}><X size={14} /> {isEdit ? 'New quotation' : 'Clear form'}</button>
+              {isEdit && <button type="button" className="del" onClick={remove}><Trash2 size={14} /> Delete</button>}
             </div>
           </div>
-        </div>
+        </aside>
       </div>
-
-      {/* Note */}
-      <div className="card">
-        <div className="card-body form-group">
-          <label>Note</label>
-          <textarea rows={1} value={form.note} onChange={set('note')} style={{ minHeight: 36 }} />
-        </div>
-      </div>
-
-      </div>
-
-      {/* Action bar — footer, so it reads as the form's final step after everything above it. */}
-      <div className="quotation-actions">
-        <button className="btn btn-primary"  onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
-        <button className="btn btn-danger"   onClick={remove}><Trash2 size={15} /> Delete</button>
-        <button className="btn btn-outline"  onClick={() => doPrint(true)}><Printer size={15} /> Print (Rate)</button>
-        <button className="btn btn-outline"  onClick={() => doPrint(false)}><Printer size={15} /> Print (W/O Rate)</button>
-        {/* Cancel resets to a blank new quotation (matches legacy CmdCancel); Exit leaves
-            the module entirely (matches legacy CmdExit / Me.Close()) — previously identical. */}
-        <button className="btn btn-ghost"    onClick={() => nav('/quotations/new')}><X size={15} /> Cancel</button>
-        <button className="btn btn-ghost"    onClick={() => nav('/quotations')}><LogOut size={15} /> Exit</button>
-        {/* Matches legacy's dedicated PDF export button on the report viewer toolbar — no
-            server-side PDF engine on the web, so this reuses the W/O Rate print letterhead
-            and relies on the browser's print dialog "Save as PDF" destination. */}
-        <button className="btn btn-outline"  onClick={() => doPrint(false)}><FileDown size={15} /> PDF</button>
-        <button className="btn btn-outline"  onClick={openWhatsApp}><Send size={15} /> WhatsApp</button>
-      </div>
-
     </div>
   );
 }

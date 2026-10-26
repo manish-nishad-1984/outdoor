@@ -6,8 +6,6 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import OutdoorOrders from './pages/outdoor/OutdoorOrders';
 import OutdoorOrderForm from './pages/outdoor/OutdoorOrderForm';
-import StudioOrders from './pages/studio/StudioOrders';
-import StudioOrderForm from './pages/studio/StudioOrderForm';
 import Quotations from './pages/quotations/Quotations';
 import QuotationForm from './pages/quotations/QuotationForm';
 import Sales from './pages/finance/Sales';
@@ -30,6 +28,7 @@ import GstSettings from './pages/settings/GstSettings';
 import UserCreation from './pages/settings/UserCreation';
 import UserPermission from './pages/settings/UserPermission';
 import Bookings from './pages/bookings/Bookings';
+import ShootCalendar from './pages/calendar/ShootCalendar';
 import SaleForm from './pages/finance/SaleForm';
 import ItemMaster from './pages/masters/ItemMaster';
 import EventMaster from './pages/masters/EventMaster';
@@ -58,16 +57,13 @@ export default function App() {
             <Route path="outdoor-orders/new" element={<OutdoorOrderForm />} />
             <Route path="outdoor-orders/:id" element={<OutdoorOrderForm />} />
 
-            {/* Studio Orders */}
-            <Route path="studio-orders" element={<StudioOrders />} />
-            <Route path="studio-orders/new" element={<StudioOrderForm />} />
-            <Route path="studio-orders/:id" element={<StudioOrderForm />} />
 
             {/* Quotations & Bookings */}
             <Route path="quotations" element={<Quotations />} />
             <Route path="quotations/new" element={<QuotationForm />} />
             <Route path="quotations/:id" element={<QuotationForm />} />
             <Route path="bookings" element={<Bookings />} />
+            <Route path="calendar" element={<ShootCalendar />} />
 
             {/* Finance */}
             <Route path="sales" element={<Sales />} />

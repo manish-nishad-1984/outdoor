@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Pencil, Trash2, BookOpen, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid from '../../components/grid/DataGrid';
 
 // Legacy FrmAccount.vb switches the visible panel by account group. We switch on
 // group_name (string) instead of the legacy's hardcoded MST_AG.SRNO, so adding/
@@ -31,14 +32,23 @@ const EMPTY = {
   not_use: false,
 };
 
+const COLUMNS = [
+  { key: 'group_name', header: 'Group', width: 150 },
+  { key: 'account_name', header: 'Account Name', width: 240, strong: true },
+  { key: 'mobile_no', header: 'Mobile', width: 130 },
+  { key: 'opening_balance', header: 'Opening Bal', width: 130, format: 'currency' },
+  { key: 'credit_debit', header: 'Cr/Dr', width: 80,
+    cell: r => <span className={`badge ${r.credit_debit==='Cr'?'badge-green':'badge-blue'}`}>{r.credit_debit}</span> },
+  { key: 'status_flag', header: 'Status', width: 100, value: r => (r.status_flag ? 'Active' : 'Inactive'),
+    cell: r => <span className={`badge ${r.status_flag?'badge-green':'badge-gray'}`}>{r.status_flag?'Active':'Inactive'}</span> },
+];
+
 export default function Accounts() {
   const [rows, setRows]         = useState([]);
   const [groups, setGroups]     = useState([]);
   const [items, setItems]       = useState([]);
-  const [search, setSearch]     = useState('');
   const [groupFilter, setGroupFilter] = useState('');
-  const [page, setPage]         = useState(1);
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading]   = useState(true);
   const [modal, setModal]       = useState(null); // null | 'new' | row
   const [form, setForm]         = useState(EMPTY);
   const [saving, setSaving]     = useState(false);
@@ -47,10 +57,10 @@ export default function Accounts() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/accounts', { params: { search, group_id: groupFilter } });
+      const r = await api.get('/accounts', { params: { group_id: groupFilter } });
       setRows(r.data || []);
     } catch(e){ console.error(e); } finally { setLoading(false); }
-  }, [search, groupFilter]);
+  }, [groupFilter]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -86,15 +96,10 @@ export default function Accounts() {
 
   const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
   const setChk = k => e => setForm(f => ({...f, [k]: e.target.checked}));
-  const cur = n => n != null ? `₹${parseFloat(n).toLocaleString('en-IN')}` : '-';
 
   const selectedGroupName = groups.find(g => String(g.id) === String(form.agent_id))?.group_name || '';
   const panel = panelFor(selectedGroupName);
   const isParty = panel === 'party' || panel === 'party-extra' || panel === 'party-limit';
-
-  const PAGE_SIZE = 25;
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="page-container">
@@ -105,58 +110,27 @@ export default function Accounts() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-toolbar">
-            <div className="search-box">
-              <Search size={15} className="search-icon"/>
-              <input placeholder="Search by name, mobile..." value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            </div>
-            <select value={groupFilter} onChange={e => { setGroupFilter(e.target.value); setPage(1); }} style={{ maxWidth: 200 }}>
-              <option value="">All Groups</option>
-              {groups.map(g => <option key={g.id} value={g.id}>{g.group_name}</option>)}
-            </select>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16}/> New Account</button>
-          </div>
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>GROUP</th><th>ACCOUNT NAME</th><th>MOBILE</th>
-                  <th>OPENING BAL</th><th>CR/DR</th><th>STATUS</th><th></th>
-                </tr></thead>
-                <tbody>
-                  {rows.length === 0 && <tr><td colSpan={7} className="table-empty"><BookOpen size={32}/><p>No accounts found</p></td></tr>}
-                  {pageRows.map(r => (
-                    <tr key={r.id}>
-                      <td>{r.group_name || '-'}</td>
-                      <td><strong>{r.account_name}</strong></td>
-                      <td>{r.mobile_no||'-'}</td>
-                      <td>{cur(r.opening_balance)}</td>
-                      <td><span className={`badge ${r.credit_debit==='Cr'?'badge-green':'badge-blue'}`}>{r.credit_debit}</span></td>
-                      <td><span className={`badge ${r.status_flag?'badge-green':'badge-gray'}`}>{r.status_flag?'Active':'Inactive'}</span></td>
-                      <td>
-                        <div className="action-btns">
-                          <button className="btn-edit" onClick={() => openEdit(r)}><Pencil size={14}/></button>
-                          <button className="btn-danger-soft" onClick={() => del(r.id)}><Trash2 size={14}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {rows.length > PAGE_SIZE && (
-            <div className="pagination">
-              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
-              <span>Page {page} of {pageCount}</span>
-              <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="accounts"
+        columns={COLUMNS}
+        data={rows}
+        loading={loading}
+        defaultSort={[{ id: 'account_name', desc: false }]}
+        searchPlaceholder="Search by name, mobile, group…"
+        emptyText="No accounts found"
+        onRowClick={openEdit}
+        rowActions={r => <>
+          <button type="button" className="dg-act" title="Edit" onClick={() => openEdit(r)}><Pencil size={15} /></button>
+          <button type="button" className="dg-act del" title="Delete" onClick={() => del(r.id)}><Trash2 size={15} /></button>
+        </>}
+        toolbar={<>
+          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)} style={{ maxWidth: 200 }}>
+            <option value="">All Groups</option>
+            {groups.map(g => <option key={g.id} value={g.id}>{g.group_name}</option>)}
+          </select>
+          <button type="button" className="btn btn-primary" onClick={openNew}><Plus size={16}/> New Account</button>
+        </>}
+      />
 
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(null)}>

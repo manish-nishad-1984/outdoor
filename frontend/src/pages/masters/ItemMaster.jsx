@@ -1,17 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Pencil, Trash2, Package, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid from '../../components/grid/DataGrid';
 
 const EMPTY = {
   item_name:'', hsn_code:'0', rate:'',
   not_use:false, staff_req:false, not_print:false, conve_multi_qnty:false,
 };
 
+const COLUMNS = [
+  { key: 'item_name', header: 'Item Name', width: 260, strong: true },
+  { key: 'hsn_code', header: 'HSN Code', width: 110, value: r => r.hsn_code || '0' },
+  { key: 'not_use', header: 'Not Use', width: 110, align: 'center', value: r => (r.not_use ? 'Yes' : 'No'),
+    cell: r => <span className={`badge ${r.not_use ? 'badge-green' : 'badge-gray'}`}>{r.not_use ? 'Yes' : 'No'}</span> },
+  { key: 'staff_req', header: 'Staff Req.', width: 110, align: 'center', value: r => (r.staff_req ? 'Yes' : 'No'),
+    cell: r => <span className={`badge ${r.staff_req ? 'badge-green' : 'badge-gray'}`}>{r.staff_req ? 'Yes' : 'No'}</span> },
+  { key: 'not_print', header: 'Not Print', width: 110, align: 'center', value: r => (r.not_print ? 'Yes' : 'No'),
+    cell: r => <span className={`badge ${r.not_print ? 'badge-green' : 'badge-gray'}`}>{r.not_print ? 'Yes' : 'No'}</span> },
+  { key: 'conve_multi_qnty', header: 'Multi Qnty', width: 110, align: 'center', value: r => (r.conve_multi_qnty ? 'Yes' : 'No'),
+    cell: r => <span className={`badge ${r.conve_multi_qnty ? 'badge-green' : 'badge-gray'}`}>{r.conve_multi_qnty ? 'Yes' : 'No'}</span> },
+  { key: 'rate', header: 'Rate', width: 120, format: 'currency' },
+];
+
 export default function ItemMaster() {
   const [rows, setRows]       = useState([]);
-  const [search, setSearch]   = useState('');
-  const [page, setPage]       = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState(null); // null | 'new' | row
   const [form, setForm]       = useState(EMPTY);
   const [saving, setSaving]   = useState(false);
@@ -20,10 +33,10 @@ export default function ItemMaster() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/items', { params: { search } });
+      const r = await api.get('/items');
       setRows(r.data || []);
     } catch(e){ console.error(e); } finally { setLoading(false); }
-  }, [search]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -56,12 +69,6 @@ export default function ItemMaster() {
 
   const set   = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const check = k => e => setForm(f => ({ ...f, [k]: e.target.checked }));
-  const cur   = n => n != null ? `₹${parseFloat(n).toLocaleString('en-IN')}` : '-';
-  const flag  = v => v ? <Check size={15} className="flag-yes" /> : <span className="flag-no">–</span>;
-
-  const PAGE_SIZE = 25;
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="page-container">
@@ -72,59 +79,21 @@ export default function ItemMaster() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-toolbar">
-            <div className="search-box">
-              <Search size={15} className="search-icon"/>
-              <input placeholder="Search by item name, HSN code..." value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            </div>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16}/> New Item</button>
-          </div>
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>ITEM NAME</th><th>HSN CODE</th>
-                  <th style={{textAlign:'center'}}>NOT USE</th>
-                  <th style={{textAlign:'center'}}>STAFF REQ.</th>
-                  <th style={{textAlign:'center'}}>NOT PRINT</th>
-                  <th style={{textAlign:'center'}}>MULTI QNTY</th>
-                  <th style={{textAlign:'right'}}>RATE</th><th></th>
-                </tr></thead>
-                <tbody>
-                  {rows.length === 0 && <tr><td colSpan={8} className="table-empty"><Package size={32}/><p>No items found</p></td></tr>}
-                  {pageRows.map(r => (
-                    <tr key={r.id}>
-                      <td><strong>{r.item_name}</strong></td>
-                      <td>{r.hsn_code||'0'}</td>
-                      <td style={{textAlign:'center'}}>{flag(r.not_use)}</td>
-                      <td style={{textAlign:'center'}}>{flag(r.staff_req)}</td>
-                      <td style={{textAlign:'center'}}>{flag(r.not_print)}</td>
-                      <td style={{textAlign:'center'}}>{flag(r.conve_multi_qnty)}</td>
-                      <td style={{textAlign:'right'}}>{cur(r.rate)}</td>
-                      <td>
-                        <div className="action-btns">
-                          <button className="btn-edit" onClick={() => openEdit(r)}><Pencil size={14}/></button>
-                          <button className="btn-danger-soft" onClick={() => del(r.id)}><Trash2 size={14}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {rows.length > PAGE_SIZE && (
-            <div className="pagination">
-              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
-              <span>Page {page} of {pageCount}</span>
-              <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="item-master"
+        columns={COLUMNS}
+        data={rows}
+        loading={loading}
+        defaultSort={[{ id: 'item_name', desc: false }]}
+        searchPlaceholder="Search by item name, HSN code…"
+        emptyText="No items found"
+        onRowClick={openEdit}
+        rowActions={r => <>
+          <button type="button" className="dg-act" title="Edit" onClick={() => openEdit(r)}><Pencil size={15} /></button>
+          <button type="button" className="dg-act del" title="Delete" onClick={() => del(r.id)}><Trash2 size={15} /></button>
+        </>}
+        toolbar={<button type="button" className="btn btn-primary" onClick={openNew}><Plus size={16} /> New Item</button>}
+      />
 
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(null)}>

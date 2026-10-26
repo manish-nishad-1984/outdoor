@@ -1,18 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Trash2, Truck, X } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid, { formatCurrency } from '../../components/grid/DataGrid';
 
 const TIME_SLOTS = ['Full Day','Half Day','Morning','Evening','Night','Custom'];
 const EMPTY = { customer_name:'', order_contact:'', remark:'', items:[] };
 const EMPTY_ITEM = { employee_name:'', item_name:'', place:'', order_date:'', time_slot:'Full Day', quantity:1, rate:0, total:0 };
 
+const COLUMNS = [
+  { key: 'customer_name', header: 'Customer', width: 220, strong: true },
+  { key: 'order_contact', header: 'Contact', width: 130 },
+  { key: 'inquiry_date', header: 'Date', width: 110, format: 'date' },
+  { key: 'from_date', header: 'From', width: 110, format: 'date' },
+  { key: 'to_date', header: 'To', width: 110, format: 'date' },
+  { key: 'item_count', header: 'Items', width: 100, align: 'center',
+    cell: r => <span className="badge badge-gray">{r.item_count} item(s)</span> },
+  { key: 'subtotal', header: 'Subtotal', width: 120, format: 'currency', total: 'sum', hidden: true },
+  { key: 'gross_total', header: 'Total', width: 120, format: 'currency', total: 'sum', strong: true },
+  { key: 'remark', header: 'Remark', width: 200, cell: r => r.remark || <span className="dg-muted">—</span> },
+];
+
 export default function HireOrders() {
   const [rows, setRows]       = useState([]);
-  const [total, setTotal]     = useState(0);
   const [stats, setStats]     = useState({});
-  const [search, setSearch]   = useState('');
-  const [page, setPage]       = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState(false);
   const [form, setForm]       = useState(EMPTY);
   const [saving, setSaving]   = useState(false);
@@ -21,10 +32,10 @@ export default function HireOrders() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/hire-orders', { params: { search, page, limit: 25 } });
-      setRows(r.data.data || []); setTotal(r.data.total || 0); setStats(r.data.stats || {});
+      const r = await api.get('/hire-orders', { params: { limit: 5000 } });
+      setRows(r.data.data || []); setStats(r.data.stats || {});
     } catch(e){ console.error(e); } finally { setLoading(false); }
-  }, [search, page]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -64,8 +75,6 @@ export default function HireOrders() {
   };
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
-  const fmt = d => d ? new Date(d).toLocaleDateString('en-IN') : '-';
-  const cur = n => n!=null ? `₹${parseFloat(n).toLocaleString('en-IN')}` : '₹0';
   const subtotal = form.items.reduce((s,it)=>s+parseFloat(it.total||0),0);
 
   return (
@@ -73,63 +82,31 @@ export default function HireOrders() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Hire Orders</h1>
-          <p className="page-subtitle">{total} total hire orders</p>
+          <p className="page-subtitle">{rows.length} total hire orders</p>
         </div>
       </div>
 
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card card-accent"><div className="stat-label">TOTAL ORDERS</div><div className="stat-value">{stats.total||0}</div></div>
-        <div className="stat-card"><div className="stat-label">TOTAL VALUE</div><div className="stat-value" style={{color:'hsl(var(--primary))'}}>{cur(stats.total_value)}</div></div>
+        <div className="stat-card"><div className="stat-label">TOTAL VALUE</div><div className="stat-value" style={{color:'hsl(var(--primary))'}}>{formatCurrency(stats.total_value)}</div></div>
         <div className="stat-card"></div><div className="stat-card"></div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-toolbar">
-            <div className="search-box">
-              <Search size={15} className="search-icon"/>
-              <input placeholder="Search by customer, contact..." value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            </div>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Hire Order</button>
-          </div>
-
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>CUSTOMER</th><th>CONTACT</th><th>DATE</th>
-                  <th>FROM</th><th>TO</th><th>ITEMS</th><th>TOTAL</th><th>REMARK</th><th></th>
-                </tr></thead>
-                <tbody>
-                  {rows.length === 0 && <tr><td colSpan={9} className="table-empty"><Truck size={32}/><p>No hire orders found</p></td></tr>}
-                  {rows.map(r => (
-                    <tr key={r.id}>
-                      <td><strong>{r.customer_name}</strong></td>
-                      <td>{r.order_contact||'-'}</td>
-                      <td>{fmt(r.inquiry_date)}</td>
-                      <td>{fmt(r.from_date)}</td>
-                      <td>{fmt(r.to_date)}</td>
-                      <td><span className="badge badge-gray">{r.item_count} item(s)</span></td>
-                      <td style={{fontWeight:600}}>{cur(r.gross_total)}</td>
-                      <td>{r.remark||'-'}</td>
-                      <td><button className="btn-danger-soft" onClick={()=>del(r.id)}><Trash2 size={14}/></button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {total > 25 && (
-            <div className="pagination">
-              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
-              <span>Page {page} of {Math.ceil(total/25)}</span>
-              <button disabled={page>=Math.ceil(total/25)} onClick={() => setPage(p=>p+1)}>Next</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="hire-orders"
+        columns={COLUMNS}
+        data={rows}
+        loading={loading}
+        defaultSort={[{ id: 'inquiry_date', desc: true }]}
+        searchPlaceholder="Search customer, contact, remark…"
+        emptyText="No hire orders found"
+        actionsWidth={56}
+        rowActions={r => (
+          <button type="button" className="dg-act del" title="Delete" onClick={() => del(r.id)}><Trash2 size={15} /></button>
+        )}
+        toolbar={<button type="button" className="btn btn-primary" onClick={openModal}><Plus size={16}/> New Hire Order</button>}
+      />
 
       {/* Modal */}
       {modal && (

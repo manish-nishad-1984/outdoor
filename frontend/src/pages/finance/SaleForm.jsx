@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Trash2, Save, ArrowLeft, X } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, Check } from 'lucide-react';
 import api from '../../api/axios';
+import '../../components/docForm.css';
 
 const PAYMENT_MODES = ['Cash','UPI','Cheque','Card','Online'];
 const WEDDING_ITEMS = [
@@ -98,177 +99,107 @@ export default function SaleForm() {
   const pending = gross - disc - adv;
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <button className="btn btn-ghost" onClick={() => nav('/sales')}>
-            <ArrowLeft size={16}/>
-          </button>
-          <div>
-            <h1 className="page-title">{isNew ? 'New Sale Invoice' : `Edit Sale #${id}`}</h1>
-            <p className="page-subtitle">Create sale invoice for a customer</p>
-          </div>
-        </div>
-        <button className="btn btn-primary" onClick={save} disabled={saving}>
-          <Save size={15}/> {saving ? 'Saving…' : 'Save Invoice'}
-        </button>
+    <div className="qf">
+      <div className="qf-top">
+        <button type="button" className="qf-back" onClick={() => nav('/sales')} title="Back to list"><ArrowLeft size={18} /></button>
+        <h1>{isNew ? 'New Sale Invoice' : 'Edit Sale Invoice'}</h1>
+        {!isNew && <span className="qf-no">#{id}</span>}
       </div>
 
-      {err && <div className="alert alert-error" style={{marginBottom:16}}>{err}</div>}
+      {err && <div className="alert alert-error qf-alert">{err}</div>}
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 300px',gap:16,alignItems:'start'}}>
-
-        <div>
-          {/* Customer Info */}
-          <div className="card" style={{marginBottom:16}}>
-            <div className="card-header"><div className="card-title">Customer Details</div></div>
-            <div className="card-body form-grid">
-              <div className="form-group">
-                <label>Customer Name *</label>
-                <input value={form.customer_name} onChange={setF('customer_name')} placeholder="Customer name" required/>
-              </div>
-              <div className="form-group">
-                <label>Invoice Date</label>
-                <input type="date" value={form.inquiry_date} onChange={setF('inquiry_date')}/>
-              </div>
-              <div className="form-group">
-                <label>Payment Mode</label>
-                <select value={form.payment_mode} onChange={setF('payment_mode')}>
-                  {PAYMENT_MODES.map(m=><option key={m}>{m}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Status</label>
+      <div className="qf-grid">
+        <div className="qf-main">
+          <section className="qf-card">
+            <h2 className="qf-sec"><span className="qf-step">1</span> Customer</h2>
+            <div className="qf-fields">
+              <label className="qf-field qf-span2">
+                <span>Customer Name *</span>
+                <input value={form.customer_name} onChange={setF('customer_name')} placeholder="Customer name" autoFocus={isNew} />
+              </label>
+              <label className="qf-field">
+                <span>Invoice Date</span>
+                <input type="date" value={form.inquiry_date} onChange={setF('inquiry_date')} />
+              </label>
+              <label className="qf-field">
+                <span>Status</span>
                 <select value={form.status} onChange={setF('status')}>
-                  {['Pending','Confirmed','Completed','Cancelled'].map(s=><option key={s}>{s}</option>)}
+                  {['Pending','Confirmed','Completed','Cancelled'].map(s => <option key={s}>{s}</option>)}
                 </select>
-              </div>
+              </label>
             </div>
-          </div>
+          </section>
 
-          {/* Line Items */}
-          <div className="card" style={{marginBottom:16}}>
-            <div className="card-header">
-              <div className="card-title">Line Items</div>
-              <button type="button" className="btn btn-ghost" style={{fontSize:12}} onClick={addRow}>
-                <Plus size={13}/> Add Row
-              </button>
-            </div>
-            <div className="card-body" style={{padding:0}}>
-              <div className="table-wrap">
-                <table className="data-table" style={{fontSize:13}}>
-                  <thead><tr>
-                    <th style={{width:'40%'}}>DESCRIPTION</th>
-                    <th style={{width:'10%',textAlign:'center'}}>QTY</th>
-                    <th style={{width:'15%',textAlign:'right'}}>RATE (₹)</th>
-                    <th style={{width:'20%',textAlign:'right'}}>AMOUNT (₹)</th>
-                    <th style={{width:'5%'}}></th>
-                  </tr></thead>
-                  <tbody>
-                    {form.items.map((it,idx) => (
-                      <tr key={idx}>
-                        <td>
-                          <input value={it.description} onChange={e=>setRow(idx,'description',e.target.value)}
-                            placeholder="Service / item description"
-                            style={{width:'100%',border:'none',background:'transparent',fontSize:13}}/>
-                        </td>
-                        <td style={{textAlign:'center'}}>
-                          <input type="number" value={it.qty} onChange={e=>setRow(idx,'qty',e.target.value)}
-                            style={{width:50,border:'none',background:'transparent',textAlign:'center'}}/>
-                        </td>
-                        <td style={{textAlign:'right'}}>
-                          <input type="number" value={it.rate} onChange={e=>setRow(idx,'rate',e.target.value)}
-                            style={{width:80,border:'none',background:'transparent',textAlign:'right'}}/>
-                        </td>
-                        <td style={{textAlign:'right',fontWeight:600}}>
-                          ₹{parseFloat(it.amount||0).toLocaleString('en-IN')}
-                        </td>
-                        <td>
-                          {form.items.length > 1 && (
-                            <button type="button" className="btn-danger-soft" onClick={()=>removeRow(idx)} style={{padding:'2px 6px'}}>
-                              <X size={12}/>
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{background:'#f9fafb',fontWeight:700}}>
-                      <td colSpan={3} style={{textAlign:'right'}}>Subtotal</td>
-                      <td style={{textAlign:'right'}}>₹{gross.toLocaleString('en-IN')}</td>
-                      <td></td>
+          {/* Line items are edited in place; "Add row" appends a blank one */}
+          <section className="qf-card">
+            <h2 className="qf-sec"><span className="qf-step">2</span> Items</h2>
+            <div className="qf-table-wrap">
+              <table className="qf-table">
+                <thead><tr>
+                  <th>Description</th>
+                  <th className="r" style={{ width: 80 }}>Qty</th>
+                  <th className="r" style={{ width: 110 }}>Rate</th>
+                  <th className="r" style={{ width: 110 }}>Amount</th>
+                  <th style={{ width: 44 }}></th>
+                </tr></thead>
+                <tbody>
+                  {form.items.map((it, idx) => (
+                    <tr key={idx} className="qf-edit-row">
+                      <td><input value={it.description} onChange={e => setRow(idx, 'description', e.target.value)} placeholder="Service / item description" /></td>
+                      <td><input className="r" type="number" value={it.qty} onChange={e => setRow(idx, 'qty', e.target.value)} /></td>
+                      <td><input className="r" type="number" value={it.rate} onChange={e => setRow(idx, 'rate', e.target.value)} /></td>
+                      <td className="r b">{cur(it.amount)}</td>
+                      <td className="acts">
+                        {form.items.length > 1 && (
+                          <button type="button" className="del" onClick={() => removeRow(idx)} title="Remove"><Trash2 size={14} /></button>
+                        )}
+                      </td>
                     </tr>
-                  </tfoot>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+            <div className="qf-sec-foot">
+              <button type="button" className="qf-link" onClick={addRow}><Plus size={14} /> Add row</button>
+            </div>
+          </section>
 
-          {/* Wedding Checklist */}
-          <div className="card">
-            <div className="card-header"><div className="card-title">Wedding Services Checklist</div></div>
-            <div className="card-body">
-              <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                {WEDDING_ITEMS.map(item => (
-                  <label key={item} style={{
-                    display:'flex',alignItems:'center',gap:6,cursor:'pointer',
-                    padding:'5px 10px',borderRadius:6,fontSize:12,fontWeight:500,
-                    border:`1px solid ${form.wedding_items.includes(item)?'hsl(var(--primary))':'#e5e7eb'}`,
-                    background: form.wedding_items.includes(item)?'hsl(var(--accent))':'#f9fafb',
-                    color: form.wedding_items.includes(item)?'hsl(var(--accent-foreground))':'#374151'
-                  }}>
-                    <input type="checkbox" checked={form.wedding_items.includes(item)}
-                      onChange={()=>toggleWedding(item)} style={{accentColor:'hsl(var(--primary))'}}/>
-                    {item}
+          <section className="qf-card">
+            <h2 className="qf-sec"><span className="qf-step">3</span> Wedding Services <small>tick what is included</small></h2>
+            <div className="qf-pills">
+              {WEDDING_ITEMS.map(item => {
+                const on = form.wedding_items.includes(item);
+                return (
+                  <label key={item} className={on ? 'on' : undefined}>
+                    <input type="checkbox" checked={on} onChange={() => toggleWedding(item)} />{on && <Check size={13} />} {item}
                   </label>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          </div>
+          </section>
         </div>
 
-        {/* Amount Summary Panel */}
-        <div>
-          <div className="card" style={{position:'sticky',top:16}}>
-            <div className="card-header"><div className="card-title">Amount Summary</div></div>
-            <div className="card-body">
-              <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span style={{fontSize:13,color:'#6b7280'}}>Gross Total</span>
-                  <span style={{fontWeight:600,fontSize:14}}>{cur(gross)}</span>
-                </div>
-                <div>
-                  <label style={{fontSize:12,color:'#6b7280',fontWeight:600}}>Discount (₹)</label>
-                  <input type="number" value={form.discount_rs} onChange={setF('discount_rs')}
-                    style={{width:'100%',marginTop:4}}/>
-                </div>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',
-                  borderTop:'1px solid #e5e7eb',paddingTop:10}}>
-                  <span style={{fontSize:13,color:'#6b7280'}}>Net Total</span>
-                  <span style={{fontWeight:700,fontSize:15}}>{cur(gross-disc)}</span>
-                </div>
-                <div>
-                  <label style={{fontSize:12,color:'#6b7280',fontWeight:600}}>Advance Received (₹)</label>
-                  <input type="number" value={form.advance} onChange={setF('advance')}
-                    style={{width:'100%',marginTop:4}}/>
-                </div>
-                <div style={{
-                  background: pending > 0 ? '#fef2f2' : '#f0fdf4',
-                  border: `1px solid ${pending>0?'#fecaca':'#bbf7d0'}`,
-                  borderRadius:8, padding:'12px 14px', textAlign:'center'
-                }}>
-                  <div style={{fontSize:11,color: pending>0?'#dc2626':'#16a34a',fontWeight:700,textTransform:'uppercase',marginBottom:4}}>
-                    {pending > 0 ? 'Pending Amount' : 'Fully Paid'}
-                  </div>
-                  <div style={{fontSize:22,fontWeight:800,color: pending>0?'#dc2626':'#16a34a'}}>
-                    {cur(pending > 0 ? pending : 0)}
-                  </div>
-                </div>
-              </div>
+        <aside className="qf-side">
+          <div className="qf-card qf-sum">
+            <h2 className="qf-sec">Summary</h2>
+            <div className="qf-sum-row strong" style={{ borderTop: 0, marginTop: 0 }}><span>Gross Total</span><span>{cur(gross)}</span></div>
+            <label className="qf-sum-row"><span>Discount (₹)</span>
+              <input type="number" value={form.discount_rs} onChange={setF('discount_rs')} /></label>
+            <div className="qf-grand"><span>Net Total</span><strong>{cur(gross - disc)}</strong></div>
+            <label className="qf-sum-row"><span>Advance (₹)</span>
+              <input type="number" value={form.advance} onChange={setF('advance')} /></label>
+            <label className="qf-sum-row"><span>Paid by</span>
+              <select value={form.payment_mode} onChange={setF('payment_mode')}>
+                {PAYMENT_MODES.map(m => <option key={m}>{m}</option>)}
+              </select></label>
+            <div className={`qf-pending${pending > 0 ? ' due' : ''}`}>
+              <span>{pending > 0 ? 'Pending' : 'Fully paid'}</span><strong>{cur(pending > 0 ? pending : 0)}</strong>
             </div>
+            <button type="button" className="btn btn-primary qf-save" onClick={save} disabled={saving}>
+              <Save size={16} /> {saving ? 'Saving…' : 'Save Invoice'}
+            </button>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );

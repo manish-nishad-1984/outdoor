@@ -1,24 +1,57 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  Camera, Wallet, TrendingUp, Zap, PieChart,
-  Receipt, FileText, BarChart2,
+  Camera, Wallet, Zap, PieChart, Receipt, FileText, BarChart2, UserX, CheckCircle2, MapPin, Clock,
 } from 'lucide-react';
 import api from '../api/axios';
+import './dashboard.css';
 
-const chartData = [
-  { month: 'Jan', revenue: 38000 }, { month: 'Feb', revenue: 42000 },
-  { month: 'Mar', revenue: 51000 }, { month: 'Apr', revenue: 46000 },
-  { month: 'May', revenue: 58000 }, { month: 'Jun', revenue: 72000 },
-];
+const fmtDay = d => {
+  if (!d) return { day: '—', mon: '' };
+  const dt = new Date(d);
+  return { day: dt.getDate(), mon: dt.toLocaleString('en-IN', { month: 'short' }) };
+};
+// Days-left label for a function date and its urgency colour class.
+const whenLabel = n => {
+  if (n == null) return { text: 'No date', cls: 'muted' };
+  if (n === 0) return { text: 'Today', cls: 'urgent' };
+  if (n === 1) return { text: 'Tomorrow', cls: 'urgent' };
+  if (n > 1) return { text: `In ${n} days`, cls: n <= 7 ? 'soon' : 'later' };
+  return { text: `${-n} day${n === -1 ? '' : 's'} ago`, cls: 'past' };
+};
 
 export default function Dashboard() {
+  const nav = useNavigate();
   const [stats, setStats] = useState(null);
+  const [unassigned, setUnassigned] = useState(null);
 
   useEffect(() => {
     api.get('/reports/dashboard').then(r => setStats(r.data)).catch(() => {});
+    api.get('/reports/unassigned-staff').then(r => setUnassigned(r.data || [])).catch(() => setUnassigned([]));
   }, []);
+
+  const upcoming = (unassigned || []).filter(u => u.days_left == null || u.days_left >= 0);
+  const past = (unassigned || []).filter(u => u.days_left != null && u.days_left < 0);
+
+  const staffRow = u => {
+    const { day, mon } = fmtDay(u.function_date);
+    const when = whenLabel(u.days_left == null ? null : Number(u.days_left));
+    return (
+      <button type="button" key={u.id} className={`dash-staff-row ${when.cls}`} onClick={() => nav(`/outdoor-orders/${u.order_id}`)}
+        title="Open the order to assign a photographer / staff">
+        <span className="dash-date"><b>{day}</b><small>{mon}</small></span>
+        <span className="dash-staff-main">
+          <span className="dash-staff-title">{u.item_name}{u.event_name && <em> · {u.event_name}</em>}</span>
+          <span className="dash-staff-sub">
+            <span>#{u.order_no} · {u.client_name}{u.mobile ? ` · ${u.mobile}` : ''}</span>
+            {u.place && <span><MapPin size={12} /> {u.place}</span>}
+            {u.time_slot && <span><Clock size={12} /> {u.time_slot}</span>}
+          </span>
+        </span>
+        <span className={`dash-when ${when.cls}`}>{when.text}</span>
+      </button>
+    );
+  };
 
   return (
     <div>
@@ -46,23 +79,30 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 20 }}>
-        {/* Chart */}
+      <div className="dash-grid">
+        {/* Order items whose Item Master entry is "Staff Required" but no photographer / operator is set */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title"><TrendingUp size={16} strokeWidth={2} /> Monthly Revenue</div>
-            <span className="badge badge-green">2026</span>
+            <div className="card-title"><UserX size={16} strokeWidth={2} /> Photographer / Staff Not Assigned</div>
+            {unassigned?.length > 0 && <span className="badge badge-red">{unassigned.length}</span>}
           </div>
-          <div className="card-body">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData}>
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `₹${v/1000}k`} />
-                <Tooltip formatter={v => [`₹${v.toLocaleString('en-IN')}`, 'Revenue']} />
-                <Bar dataKey="revenue" fill="#d77e09" radius={[6,6,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="dash-staff">
+            {unassigned === null && <p className="dash-staff-empty">Loading…</p>}
+            {unassigned?.length === 0 && (
+              <p className="dash-staff-empty ok"><CheckCircle2 size={30} /> Every shoot that needs staff has someone assigned.</p>
+            )}
+            {upcoming.length > 0 && <>
+              <div className="dash-staff-group">Upcoming functions · {upcoming.length}</div>
+              {upcoming.map(staffRow)}
+            </>}
+            {past.length > 0 && <>
+              <div className="dash-staff-group">Date passed, still not assigned · {past.length}</div>
+              {past.map(staffRow)}
+            </>}
           </div>
+          {unassigned?.length > 0 && (
+            <p className="dash-staff-note">Items marked “Staff Required” in Item Master. Click a row to open the order and assign an operator.</p>
+          )}
         </div>
 
         {/* Quick Links */}

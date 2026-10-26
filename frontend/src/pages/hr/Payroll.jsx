@@ -1,8 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Wallet, Download } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid, { formatCurrency } from '../../components/grid/DataGrid';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const COLUMNS = [
+  { key: 'employee_name', header: 'Employee', width: 220, strong: true, value: r => r.employee_name || `Employee #${r.employee_id}` },
+  { key: 'total_days', header: 'Days', width: 80, align: 'center' },
+  { key: 'present_days', header: 'Present', width: 90, align: 'center', total: 'sum', format: 'number',
+    cell: r => <span className="badge badge-green">{r.present_days || 0}</span> },
+  { key: 'absent_days', header: 'Absent', width: 90, align: 'center', total: 'sum', format: 'number',
+    cell: r => <span className="badge badge-red">{r.absent_days || 0}</span> },
+  { key: 'monthly_salary', header: 'Gross Salary', width: 130, format: 'currency', total: 'sum' },
+  { key: 'actual_salary', header: 'Actual Salary', width: 130, format: 'currency' },
+  { key: 'deduction', header: 'Deduction', width: 120, format: 'currency', total: 'sum',
+    cell: r => <span className="dg-neg">{formatCurrency(r.deduction)}</span> },
+  { key: 'salary', header: 'Net Salary', width: 130, format: 'currency', total: 'sum',
+    cell: r => <span className="dg-pos">{formatCurrency(r.salary)}</span> },
+];
 
 export default function Payroll() {
   const now = new Date();
@@ -70,64 +85,16 @@ export default function Payroll() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">Salary Sheet — {MONTHS[month-1]} {year}</div>
-        </div>
-        <div className="card-body" style={{padding:0}}>
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>EMPLOYEE</th>
-                  <th style={{textAlign:'center'}}>DAYS</th>
-                  <th style={{textAlign:'center'}}>PRESENT</th>
-                  <th style={{textAlign:'center'}}>ABSENT</th>
-                  <th style={{textAlign:'right'}}>GROSS SALARY</th>
-                  <th style={{textAlign:'right'}}>ACTUAL SALARY</th>
-                  <th style={{textAlign:'right'}}>DEDUCTION</th>
-                  <th style={{textAlign:'right'}}>NET SALARY</th>
-                </tr></thead>
-                <tbody>
-                  {rows.length === 0 && (
-                    <tr><td colSpan={8} className="table-empty">
-                      <Wallet size={36}/>
-                      <p>No payroll data for {MONTHS[month-1]} {year}</p>
-                    </td></tr>
-                  )}
-                  {rows.map(r => (
-                    <tr key={r.id}>
-                      <td><strong>{r.employee_name || `Employee #${r.employee_id}`}</strong></td>
-                      <td style={{textAlign:'center'}}>{r.total_days || '-'}</td>
-                      <td style={{textAlign:'center'}}>
-                        <span className="badge badge-green">{r.present_days || 0}</span>
-                      </td>
-                      <td style={{textAlign:'center'}}>
-                        <span className="badge badge-red">{r.absent_days || 0}</span>
-                      </td>
-                      <td style={{textAlign:'right'}}>{cur(r.monthly_salary)}</td>
-                      <td style={{textAlign:'right'}}>{cur(r.actual_salary)}</td>
-                      <td style={{textAlign:'right',color:'#dc2626'}}>{cur(r.deduction)}</td>
-                      <td style={{textAlign:'right',fontWeight:700,color:'#16a34a'}}>{cur(r.salary)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                {rows.length > 0 && (
-                  <tfoot>
-                    <tr style={{background:'#f9fafb',fontWeight:700,borderTop:'2px solid #e5e7eb'}}>
-                      <td colSpan={4}>Total ({rows.length} employees)</td>
-                      <td style={{textAlign:'right'}}>{cur(totals.gross)}</td>
-                      <td></td>
-                      <td style={{textAlign:'right',color:'#dc2626'}}>{cur(totals.deduction)}</td>
-                      <td style={{textAlign:'right',color:'#16a34a'}}>{cur(totals.net)}</td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="payroll"
+        columns={COLUMNS}
+        data={rows}
+        loading={loading}
+        defaultSort={[{ id: 'employee_name', desc: false }]}
+        searchPlaceholder="Search employee…"
+        emptyText={`No payroll data for ${MONTHS[month-1]} ${year}`}
+        exportName={`payroll-${MONTHS[month-1]}-${year}`}
+      />
     </div>
   );
 }

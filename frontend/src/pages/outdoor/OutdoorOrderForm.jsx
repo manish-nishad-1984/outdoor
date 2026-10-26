@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Save, Trash2, Printer, X, LogOut, MessageSquare, Mail, Send, Plus, Pencil, Check
+  Save, Trash2, Printer, X, MessageSquare, Mail, Send, Plus, Pencil, Check, ArrowLeft, ChevronDown, ChevronUp
 } from 'lucide-react';
 import api from '../../api/axios';
+import '../../components/docForm.css';
 
 const EVENTS = ['Wedding','Reception','Engagement','Haldi','Mehndi','Sangeet',
   'Pre-Wedding','Ring Ceremony','Baby Shower','Birthday','Other'];
@@ -49,8 +50,11 @@ export default function OutdoorOrderForm() {
   const [previousPending, setPreviousPending] = useState(0);
   const [clientId, setClientId] = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
-  const [recent, setRecent]   = useState([]);
   const [panel, setPanel]     = useState(''); // '', 'final', 'pre', 'family'
+  // Rarely-used header fields and per-item extras stay folded away until needed.
+  const [showMore, setShowMore] = useState(false);
+  const [showEntryMore, setShowEntryMore] = useState(false);
+  const itemNameRef = useRef(null);
   const [saving, setSaving]   = useState(false);
   const [err, setErr]         = useState('');
 
@@ -58,7 +62,6 @@ export default function OutdoorOrderForm() {
     api.get('/items').then(r => setItemList((r.data || []).filter(x => !x.not_use))).catch(() => {});
     api.get('/events').then(r => setEventList((r.data || []).filter(x => !x.not_use).map(x => x.event_name))).catch(() => {});
     api.get('/deliverable-items').then(r => setDeliverableList(r.data || [])).catch(() => {});
-    api.get('/outdoor-orders', { params: { limit: 12 } }).then(r => setRecent(r.data.data || [])).catch(() => {});
     api.get('/accounts-master').then(r => {
       const groups = r.data || [];
       const clientGroup = groups.find(g => (g.group_name || '').toUpperCase() === 'CLIENT');
@@ -105,11 +108,25 @@ export default function OutdoorOrderForm() {
           deliverable_item_id: d.deliverable_item_id, item_name: d.item_name,
           qnty: Number(d.qnty) || 0, amount: Number(d.amount) || 0,
         })));
+        if (o.address || o.ref_by || o.package_name) setShowMore(true);
       }).catch(() => setErr('Failed to load order'));
     } else {
-      api.get('/outdoor-orders/next-no').then(r => setForm(f => ({ ...f, order_no: r.data.next }))).catch(() => {});
+      resetNew();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEdit]);
+
+  // Blank new order. The /new and /:id routes share this component instance, so going from
+  // an edit to "New" must clear state explicitly rather than rely on a remount.
+  function resetNew() {
+    setForm({ ...EMPTY_FORM, order_date: today() });
+    setItems([]); setDeliverables([]);
+    setEntry({ ...EMPTY_ENTRY, function_date: today() }); setEditingIndex(null);
+    setDeliverableEntry({ ...EMPTY_DELIVERABLE_ENTRY }); setEditingDeliverableIndex(null);
+    setAvailableQuos([]); setClientHistory([]); setPreviousPending(0);
+    setClientId(null); setUpdatedAt(null); setErr(''); setPanel(''); setShowMore(false); setShowEntryMore(false);
+    api.get('/outdoor-orders/next-no').then(r => setForm(f => ({ ...f, order_no: r.data.next }))).catch(() => {});
+  }
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const chk = k => e => setForm(f => ({ ...f, [k]: e.target.checked }));
@@ -182,8 +199,14 @@ export default function OutdoorOrderForm() {
     else setItems(arr => arr.map((r, i) => i === editingIndex ? row : r));
     setEntry({ ...EMPTY_ENTRY, function_date: entry.function_date });
     setEditingIndex(null);
+    itemNameRef.current?.focus();
   };
-  const editRow = i => { setEntry({ ...EMPTY_ENTRY, ...items[i] }); setEditingIndex(i); setErr(''); };
+  const editRow = i => {
+    const it = items[i];
+    setEntry({ ...EMPTY_ENTRY, ...it }); setEditingIndex(i); setErr('');
+    if (it.place || it.time_slot || it.operator_name || it.op_rate || it.item_remark || it.data1 || it.date1
+      || it.sms_flag || it.data_flag || it.data_issue_from_operator) setShowEntryMore(true);
+  };
   const cancelEntry = () => { setEntry({ ...EMPTY_ENTRY }); setEditingIndex(null); };
   const delRow = i => { setItems(arr => arr.filter((_, x) => x !== i)); if (editingIndex === i) cancelEntry(); };
 
@@ -234,6 +257,15 @@ export default function OutdoorOrderForm() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, items, deliverables, clientId, updatedAt, isEdit, id]);
 
+  // Ctrl+S saves from anywhere on the form.
+  useEffect(() => {
+    const onKey = e => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [save]);
+
   const remove = async () => {
     if (!isEdit) return nav('/outdoor-orders');
     if (!confirm('Delete this order?')) return;
@@ -243,7 +275,6 @@ export default function OutdoorOrderForm() {
 
   const fmt = d => d ? new Date(d).toLocaleDateString('en-IN') : '-';
   const cur = n => `₹${Number(n || 0).toLocaleString('en-IN')}`;
-  const flag = v => v ? <Check size={14} className="flag-yes" /> : <span className="flag-no">–</span>;
 
   const doPrint = (withRate) => {
     const rows = items.map(it => `
@@ -292,338 +323,313 @@ export default function OutdoorOrderForm() {
 
   const STATUS = [
     ['st_selection','Selection'], ['st_invitation','Invitation'], ['st_data','Data'], ['st_delivery','Delivery'],
-    ['st_desining','Desining'], ['st_printing','Printing'], ['st_dvd_pendrive','DVD/Pendrive'],
+    ['st_desining','Designing'], ['st_printing','Printing'], ['st_dvd_pendrive','DVD/Pendrive'],
     ['st_done','Done'], ['st_reels','Reels'],
   ];
   const needsBank = form.payment_mode === 'Bank Transfer' || form.payment_mode === 'Cheque';
+  const onEntryKey = add => e => { if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') { e.preventDefault(); add(); } };
+  const itemMeta = it => [it.place, it.time_slot, it.operator_name && `Op: ${it.operator_name}${it.op_rate ? ` (${cur(it.op_rate)})` : ''}`,
+    it.item_remark, it.data1, it.date1 && fmt(it.date1)].filter(Boolean).join(' · ');
 
   return (
-    <div className="page-container quotation-form">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Outdoor Order Book</h1>
-          <p className="page-subtitle">{isEdit ? `Editing Order No ${form.order_no}` : `New — Order No ${form.order_no}`}</p>
-        </div>
+    <div className="qf">
+      <div className="qf-top">
+        <button type="button" className="qf-back" onClick={() => nav('/outdoor-orders')} title="Back to list"><ArrowLeft size={18} /></button>
+        <h1>{isEdit ? 'Edit Order / Bill' : 'New Order / Bill'}</h1>
+        <span className="qf-no">#{form.order_no}</span>
+        <span className="qf-top-hint">Ctrl+S to save</span>
       </div>
 
-      {err && <div className="alert alert-error" style={{ marginBottom: 12 }}>{err}</div>}
+      {err && <div className="alert alert-error qf-alert">{err}</div>}
 
-      <div className="page-cols" style={{ gridTemplateColumns: '2.4fr 1fr' }}>
-        <div className="card">
-          <div className="card-body form-grid">
-            <div className="form-group">
-              <label>Order No</label>
-              <input value={form.order_no} readOnly style={{ background: 'hsl(var(--accent))', fontWeight: 700 }} />
+      <div className="qf-grid">
+        <div className="qf-main">
+          {/* 1 — customer (or start from one of their quotations) */}
+          <section className="qf-card">
+            <h2 className="qf-sec"><span className="qf-step">1</span> Customer</h2>
+            <div className="qf-fields">
+              <label className="qf-field qf-span2">
+                <span>Customer Name *</span>
+                <input list="oo-client-list" value={form.cust_name} onChange={set('cust_name')} onBlur={onClientBlur}
+                  placeholder="Type or pick a customer" autoFocus={!isEdit} />
+                <datalist id="oo-client-list">{clientList.map(c => <option key={c.id} value={c.account_name} />)}</datalist>
+              </label>
+              <label className="qf-field">
+                <span>Mobile No</span>
+                <input value={form.mob_no} onChange={set('mob_no')} inputMode="tel" />
+              </label>
+              <label className="qf-field">
+                <span>Date</span>
+                <input type="date" value={form.order_date} onChange={set('order_date')} />
+              </label>
+              <label className="qf-field qf-span2">
+                <span>Couple Name</span>
+                <input value={form.couple_name} onChange={set('couple_name')} />
+              </label>
+              <label className="qf-field qf-span2">
+                <span>From Quotation {!isEdit && !availableQuos.length && <em>(enter customer first)</em>}</span>
+                <select value={form.quo_no} onChange={e => onQuoPick(e.target.value)} disabled={isEdit}>
+                  <option value="">{isEdit ? '—' : 'None — enter items manually'}</option>
+                  {(isEdit && form.quo_no) && <option value={form.quo_no}>Quotation #{form.quo_no}</option>}
+                  {!isEdit && availableQuos.map(q => <option key={q.id} value={q.quo_no}>Quotation #{q.quo_no} — {q.client_name}</option>)}
+                </select>
+              </label>
+              {showMore && <>
+                <label className="qf-field qf-span2">
+                  <span>Address</span>
+                  <input value={form.address} onChange={set('address')} />
+                </label>
+                <label className="qf-field">
+                  <span>Ref. By</span>
+                  <input value={form.ref_by} onChange={set('ref_by')} />
+                </label>
+                <label className="qf-field">
+                  <span>Package</span>
+                  <input value={form.package_name} onChange={set('package_name')} />
+                </label>
+              </>}
             </div>
-            <div className="form-group">
-              <label>Date</label>
-              <input type="date" value={form.order_date} onChange={set('order_date')} />
-            </div>
-            <div className="form-group">
-              <label>Cust. Name *</label>
-              <input list="oo-client-list" value={form.cust_name} onChange={set('cust_name')} onBlur={onClientBlur} required />
-              <datalist id="oo-client-list">{clientList.map(c => <option key={c.id} value={c.account_name} />)}</datalist>
-            </div>
-            <div className="form-group">
-              <label>Mob No</label>
-              <input value={form.mob_no} onChange={set('mob_no')} />
-            </div>
-            <div className="form-group">
-              <label>Quo No</label>
-              <select value={form.quo_no} onChange={e => onQuoPick(e.target.value)} disabled={isEdit}>
-                <option value="">—</option>
-                {(isEdit && form.quo_no) && <option value={form.quo_no}>{form.quo_no}</option>}
-                {!isEdit && availableQuos.map(q => <option key={q.id} value={q.quo_no}>{q.quo_no} — {q.client_name}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Couple</label>
-              <input value={form.couple_name} onChange={set('couple_name')} />
-            </div>
-            <div className="form-group">
-              <label>Ref</label>
-              <input value={form.ref_by} onChange={set('ref_by')} />
-            </div>
-            <div className="form-group">
-              <label>Package</label>
-              <input value={form.package_name} onChange={set('package_name')} />
-            </div>
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
-              <label>Address</label>
-              <input value={form.address} onChange={set('address')} />
-            </div>
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
-              <label>Remark</label>
-              <input value={form.remark} onChange={set('remark')} />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div className="card">
-            <div className="card-header"><div className="card-title">Order Detail</div></div>
-            <div className="table-wrap" style={{ maxHeight: 130, overflowY: 'auto' }}>
-              <table className="data-table">
-                <thead><tr><th>Or.No</th><th>Date</th></tr></thead>
-                <tbody>
-                  {recent.length === 0 && <tr><td colSpan={2} style={{ color: '#9ca3af', padding: 12 }}>None yet</td></tr>}
-                  {recent.map(r => (
-                    <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => nav(`/outdoor-orders/${r.id}`)}>
-                      <td><span className="badge badge-blue">{r.order_no}</span></td>
-                      <td>{fmt(r.event_date)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-header"><div className="card-title">This Client's Orders</div></div>
-            <div className="table-wrap" style={{ maxHeight: 110, overflowY: 'auto' }}>
-              <table className="data-table">
-                <thead><tr><th>Or.No</th><th>Date</th></tr></thead>
-                <tbody>
-                  {clientHistory.length === 0 && <tr><td colSpan={2} style={{ color: '#9ca3af', padding: 12 }}>None yet</td></tr>}
-                  {clientHistory.map(r => (
-                    <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => nav(`/outdoor-orders/${r.id}`)}>
-                      <td><span className="badge badge-blue">{r.order_no}</span></td>
-                      <td>{fmt(r.event_date)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Item entry */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="card-body">
-          <div className="qitem-entry">
-            <div className="form-group"><label>Function Date</label>
-              <input type="date" value={entry.function_date} onChange={e => setE('function_date', e.target.value)} /></div>
-            <div className="form-group" style={{ flex: 2 }}><label>Item Name</label>
-              <input list="oo-item-list" value={entry.item_name} onChange={e => onPickItem(e.target.value)} placeholder="Select item…" />
-              <datalist id="oo-item-list">{itemList.map(it => <option key={it.id} value={it.item_name} />)}</datalist></div>
-            <div className="form-group" style={{ flex: 1.4 }}><label>Event Name</label>
-              <input list="oo-event-list" value={entry.event_name} onChange={e => setE('event_name', e.target.value)} placeholder="Event…" />
-              <datalist id="oo-event-list">{(eventList.length ? eventList : EVENTS).map(ev => <option key={ev} value={ev} />)}</datalist></div>
-            <div className="form-group" style={{ width: 70 }}><label>Qnty</label>
-              <input type="number" min={0} value={entry.qnty} onChange={e => setE('qnty', e.target.value)} /></div>
-            <div className="form-group" style={{ width: 100 }}><label>Rate</label>
-              <input type="number" min={0} step="0.01" value={entry.rate} onChange={e => setE('rate', e.target.value)} /></div>
-            <div className="form-group" style={{ width: 110 }}><label>Total</label>
-              <input value={cur(entry.total)} readOnly style={{ background: '#f9fafb', fontWeight: 600 }} /></div>
-            <div className="form-group" style={{ width: 120 }}><label>Place</label>
-              <input value={entry.place} onChange={e => setE('place', e.target.value)} /></div>
-            <div className="form-group" style={{ width: 90 }}><label>Time</label>
-              <input value={entry.time_slot} onChange={e => setE('time_slot', e.target.value)} placeholder="e.g. 6 PM" /></div>
-            <label className="checkbox-row" style={{ color: '#dc2626', fontWeight: 600, paddingBottom: 8 }}>
-              <input type="checkbox" checked={entry.data_issue_from_operator}
-                onChange={e => setE('data_issue_from_operator', e.target.checked)} />
-              <span>Data Issue From Oprater</span>
-            </label>
-          </div>
-
-          <div className="qitem-entry" style={{ marginTop: 10 }}>
-            <div className="form-group" style={{ flex: 1.6 }}><label>Oprator Name</label>
-              <input list="oo-operator-list" value={entry.operator_name} onChange={e => onPickOperator(e.target.value)} />
-              <datalist id="oo-operator-list">{operatorList.map(o => <option key={o.id} value={o.account_name} />)}</datalist></div>
-            <div className="form-group" style={{ width: 110 }}><label>Op. Rate</label>
-              <input type="number" min={0} value={entry.op_rate} onChange={e => setE('op_rate', e.target.value)} /></div>
-            <div className="form-group" style={{ flex: 1.6 }}><label>Remark</label>
-              <input value={entry.item_remark} onChange={e => setE('item_remark', e.target.value)} /></div>
-            <label className="checkbox-row" style={{ paddingBottom: 8 }}>
-              <input type="checkbox" checked={entry.sms_flag} onChange={e => setE('sms_flag', e.target.checked)} /><span>SMS</span></label>
-            <label className="checkbox-row" style={{ paddingBottom: 8 }}>
-              <input type="checkbox" checked={entry.data_flag} onChange={e => setE('data_flag', e.target.checked)} /><span>Data</span></label>
-            <div className="form-group" style={{ width: 120 }}><label>Data 1</label>
-              <input value={entry.data1} onChange={e => setE('data1', e.target.value)} /></div>
-            <div className="form-group" style={{ width: 140 }}><label>Date 1</label>
-              <input type="date" value={entry.date1} onChange={e => setE('date1', e.target.value)} /></div>
-            <div className="qitem-entry-btns">
-              <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateEntry}>
-                {editingIndex === null ? <><Plus size={15} /> Add</> : 'Update'}
+            <div className="qf-sec-foot">
+              <button type="button" className="qf-link" onClick={() => setShowMore(v => !v)}>
+                {showMore ? <><ChevronUp size={14} /> Fewer details</> : <><ChevronDown size={14} /> Address, Ref. By, Package</>}
               </button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={cancelEntry}>Cancel</button>
+              {clientHistory.length > 0 && (
+                <div className="qf-history">
+                  <span>Earlier orders:</span>
+                  {clientHistory.map(r => (
+                    <button type="button" key={r.id} onClick={() => nav(`/outdoor-orders/${r.id}`)} title={fmt(r.event_date)}>#{r.order_no}</button>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-      </div>
+          </section>
 
-      {/* Items grid + totals */}
-      <div className="page-cols" style={{ gridTemplateColumns: '2.4fr 1fr', marginTop: 16, alignItems: 'start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div className="card">
-            <div className="table-wrap" style={{ minHeight: 160 }}>
-              <table className="data-table">
+          {/* 2 — shoot items; the last row is the entry row, with per-item extras folded under it */}
+          <section className="qf-card">
+            <h2 className="qf-sec"><span className="qf-step">2</span> Items</h2>
+            <div className="qf-table-wrap">
+              <table className="qf-table">
                 <thead><tr>
-                  <th>Date</th><th>Item Name</th><th>Event</th><th style={{ textAlign: 'center' }}>Qnty</th>
-                  <th style={{ textAlign: 'right' }}>Rate</th><th style={{ textAlign: 'right' }}>Total</th>
-                  <th style={{ textAlign: 'center' }}>SMS</th><th style={{ textAlign: 'center' }}>Data</th>
-                  <th>Data 1</th><th>Date 1</th><th></th>
+                  <th style={{ width: 140 }}>Date</th>
+                  <th>Item</th>
+                  <th style={{ width: 150 }}>Event</th>
+                  <th className="r" style={{ width: 70 }}>Qty</th>
+                  <th className="r" style={{ width: 100 }}>Rate</th>
+                  <th className="r" style={{ width: 100 }}>Amount</th>
+                  <th style={{ width: 132 }}></th>
                 </tr></thead>
                 <tbody>
-                  {items.length === 0 && <tr><td colSpan={11} className="table-empty"><p>No items added</p></td></tr>}
                   {items.map((it, i) => (
-                    <tr key={i} style={editingIndex === i ? { background: 'hsl(var(--accent))' } : undefined}>
+                    <tr key={i} className={editingIndex === i ? 'editing' : undefined}>
                       <td>{fmt(it.function_date)}</td>
-                      <td><strong>{it.item_name}</strong></td>
-                      <td>{it.event_name || '-'}</td>
-                      <td style={{ textAlign: 'center' }}>{it.qnty}</td>
-                      <td style={{ textAlign: 'right' }}>{cur(it.rate)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{cur(it.total)}</td>
-                      <td style={{ textAlign: 'center' }}>{flag(it.sms_flag)}</td>
-                      <td style={{ textAlign: 'center' }}>{flag(it.data_flag)}</td>
-                      <td>{it.data1 || '-'}</td>
-                      <td>{it.date1 ? fmt(it.date1) : '-'}</td>
                       <td>
-                        <div className="action-btns">
-                          <button className="btn-edit" onClick={() => editRow(i)}><Pencil size={14} /></button>
-                          <button className="btn-danger-soft" onClick={() => delRow(i)}><Trash2 size={14} /></button>
-                        </div>
+                        <span className="b">{it.item_name}</span>
+                        {(it.sms_flag || it.data_flag || it.data_issue_from_operator) && (
+                          <span className="qf-tags">
+                            {it.sms_flag && <span>SMS</span>}
+                            {it.data_flag && <span>Data</span>}
+                            {it.data_issue_from_operator && <span className="warn">Data from operator</span>}
+                          </span>
+                        )}
+                        {itemMeta(it) && <div className="qf-meta">{itemMeta(it)}</div>}
+                      </td>
+                      <td>{it.event_name || '-'}</td>
+                      <td className="r">{it.qnty}</td>
+                      <td className="r">{cur(it.rate)}</td>
+                      <td className="r b">{cur(it.total)}</td>
+                      <td className="acts">
+                        <button type="button" onClick={() => editRow(i)} title="Edit"><Pencil size={14} /></button>
+                        <button type="button" className="del" onClick={() => delRow(i)} title="Remove"><Trash2 size={14} /></button>
                       </td>
                     </tr>
                   ))}
+                  <tr className="qf-entry" onKeyDown={onEntryKey(addOrUpdateEntry)}>
+                    <td><input type="date" value={entry.function_date} onChange={e => setE('function_date', e.target.value)} /></td>
+                    <td>
+                      <input ref={itemNameRef} list="oo-item-list" value={entry.item_name} onChange={e => onPickItem(e.target.value)} placeholder="Item…" />
+                      <datalist id="oo-item-list">{itemList.map(it => <option key={it.id} value={it.item_name} />)}</datalist>
+                    </td>
+                    <td>
+                      <input list="oo-event-list" value={entry.event_name} onChange={e => setE('event_name', e.target.value)} placeholder="Event…" />
+                      <datalist id="oo-event-list">{(eventList.length ? eventList : EVENTS).map(ev => <option key={ev} value={ev} />)}</datalist>
+                    </td>
+                    <td><input className="r" type="number" min={0} value={entry.qnty} onChange={e => setE('qnty', e.target.value)} /></td>
+                    <td><input className="r" type="number" min={0} step="0.01" value={entry.rate} onChange={e => setE('rate', e.target.value)} /></td>
+                    <td className="r b">{cur(entry.total)}</td>
+                    <td className="acts">
+                      <button type="button" className={showEntryMore ? 'on' : undefined} onClick={() => setShowEntryMore(v => !v)}
+                        title="Place, time, operator, SMS / Data…">
+                        {showEntryMore ? <ChevronUp size={14} /> : <ChevronDown size={14} />} More
+                      </button>
+                      <button type="button" className="add" onClick={addOrUpdateEntry} title="Add (Enter)">
+                        {editingIndex === null ? <><Plus size={14} /> Add</> : <><Check size={14} /> Update</>}
+                      </button>
+                      {editingIndex !== null && <button type="button" onClick={cancelEntry} title="Cancel edit"><X size={14} /></button>}
+                    </td>
+                  </tr>
+                  {showEntryMore && (
+                    <tr className="qf-entry qf-entry-more" onKeyDown={onEntryKey(addOrUpdateEntry)}>
+                      <td colSpan={7}>
+                        <div className="qf-more-grid">
+                          <label className="qf-field"><span>Place</span>
+                            <input value={entry.place} onChange={e => setE('place', e.target.value)} /></label>
+                          <label className="qf-field"><span>Time</span>
+                            <input value={entry.time_slot} onChange={e => setE('time_slot', e.target.value)} placeholder="e.g. 6 PM" /></label>
+                          <label className="qf-field qf-span2"><span>Operator</span>
+                            <input list="oo-operator-list" value={entry.operator_name} onChange={e => onPickOperator(e.target.value)} />
+                            <datalist id="oo-operator-list">{operatorList.map(o => <option key={o.id} value={o.account_name} />)}</datalist></label>
+                          <label className="qf-field"><span>Op. Rate</span>
+                            <input className="r" type="number" min={0} value={entry.op_rate} onChange={e => setE('op_rate', e.target.value)} /></label>
+                          <label className="qf-field qf-span2"><span>Item Remark</span>
+                            <input value={entry.item_remark} onChange={e => setE('item_remark', e.target.value)} /></label>
+                          <label className="qf-field"><span>Data 1</span>
+                            <input value={entry.data1} onChange={e => setE('data1', e.target.value)} /></label>
+                          <label className="qf-field"><span>Date 1</span>
+                            <input type="date" value={entry.date1} onChange={e => setE('date1', e.target.value)} /></label>
+                          <div className="qf-checks">
+                            <label><input type="checkbox" checked={entry.sms_flag} onChange={e => setE('sms_flag', e.target.checked)} /> SMS</label>
+                            <label><input type="checkbox" checked={entry.data_flag} onChange={e => setE('data_flag', e.target.checked)} /> Data</label>
+                            <label className="warn"><input type="checkbox" checked={entry.data_issue_from_operator}
+                              onChange={e => setE('data_issue_from_operator', e.target.checked)} /> Data issue from operator</label>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-          </div>
+            {items.length === 0 && <p className="qf-hint">Fill the row above and press <kbd>Enter</kbd> to add an item{!isEdit && ', or pick a quotation above to copy its items'}.</p>}
+          </section>
 
-          {/* Post Production Item — legacy TNS_WITEM3, same pattern as Quotation's */}
-          <div className="card">
-            <div className="card-header"><div className="card-title">Post Production Item</div></div>
-            <div className="card-body">
-              <div className="qitem-entry">
-                <div className="form-group" style={{ flex: 1.6 }}><label>Item</label>
-                  <input list="oo-deliverable-item-list" value={deliverableEntry.item_name}
-                    onChange={e => onPickDeliverableItem(e.target.value)} placeholder="Select / type item…" />
-                  <datalist id="oo-deliverable-item-list">
-                    {deliverableList.map(d => <option key={d.id} value={d.item_name} />)}
-                  </datalist></div>
-                <div className="form-group" style={{ width: 80 }}><label>Qnty</label>
-                  <input type="number" min={0} value={deliverableEntry.qnty} onChange={e => setDE('qnty', e.target.value)} /></div>
-                <div className="form-group" style={{ width: 110 }}><label>Amount</label>
-                  <input type="number" min={0} step="0.01" value={deliverableEntry.amount} onChange={e => setDE('amount', e.target.value)} /></div>
-                <div className="qitem-entry-btns">
-                  <button type="button" className="btn btn-primary btn-sm" onClick={addOrUpdateDeliverable}>
-                    {editingDeliverableIndex === null ? <><Plus size={15} /> Add</> : 'Update'}
-                  </button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={cancelDeliverableEntry}>Cancel</button>
-                </div>
-              </div>
-              {deliverables.length > 0 && (
-                <div className="table-wrap" style={{ marginTop: 10 }}>
-                  <table className="data-table">
-                    <thead><tr><th>Item</th><th style={{ textAlign: 'center' }}>Qnty</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr></thead>
-                    <tbody>
-                      {deliverables.map((d, i) => (
-                        <tr key={i} style={editingDeliverableIndex === i ? { background: 'hsl(var(--accent))' } : undefined}>
-                          <td>{d.item_name}</td>
-                          <td style={{ textAlign: 'center' }}>{d.qnty}</td>
-                          <td style={{ textAlign: 'right' }}>{cur(d.amount)}</td>
-                          <td>
-                            <div className="action-btns">
-                              <button className="btn-edit" onClick={() => editDeliverableRow(i)}><Pencil size={14} /></button>
-                              <button className="btn-danger-soft" onClick={() => delDeliverableRow(i)}><Trash2 size={14} /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          {/* 3 — post production (album, video…) */}
+          <section className="qf-card">
+            <h2 className="qf-sec"><span className="qf-step">3</span> Post Production <small>album, video, frames…</small></h2>
+            <div className="qf-table-wrap">
+              <table className="qf-table">
+                <thead><tr>
+                  <th>Item</th>
+                  <th className="r" style={{ width: 70 }}>Qty</th>
+                  <th className="r" style={{ width: 110 }}>Amount</th>
+                  <th style={{ width: 96 }}></th>
+                </tr></thead>
+                <tbody>
+                  {deliverables.map((d, i) => (
+                    <tr key={i} className={editingDeliverableIndex === i ? 'editing' : undefined}>
+                      <td className="b">{d.item_name}</td>
+                      <td className="r">{d.qnty}</td>
+                      <td className="r b">{cur(d.amount)}</td>
+                      <td className="acts">
+                        <button type="button" onClick={() => editDeliverableRow(i)} title="Edit"><Pencil size={14} /></button>
+                        <button type="button" className="del" onClick={() => delDeliverableRow(i)} title="Remove"><Trash2 size={14} /></button>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="qf-entry" onKeyDown={onEntryKey(addOrUpdateDeliverable)}>
+                    <td>
+                      <input list="oo-deliverable-item-list" value={deliverableEntry.item_name}
+                        onChange={e => onPickDeliverableItem(e.target.value)} placeholder="Album, video…" />
+                      <datalist id="oo-deliverable-item-list">{deliverableList.map(d => <option key={d.id} value={d.item_name} />)}</datalist>
+                    </td>
+                    <td><input className="r" type="number" min={0} value={deliverableEntry.qnty} onChange={e => setDE('qnty', e.target.value)} /></td>
+                    <td><input className="r" type="number" min={0} step="0.01" value={deliverableEntry.amount} onChange={e => setDE('amount', e.target.value)} /></td>
+                    <td className="acts">
+                      <button type="button" className="add" onClick={addOrUpdateDeliverable} title="Add (Enter)">
+                        {editingDeliverableIndex === null ? <><Plus size={14} /> Add</> : <><Check size={14} /> Update</>}
+                      </button>
+                      {editingDeliverableIndex !== null && <button type="button" onClick={cancelDeliverableEntry} title="Cancel edit"><X size={14} /></button>}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div className="card">
-          <div className="card-body">
-            <div className="summary-box">
-              <div className="summary-row"><span>Sub Total</span><strong>{cur(subTotal)}</strong></div>
-              {previousPending > 0 && (
-                <div className="summary-row"><span>Previous Pending</span><strong>{cur(previousPending)}</strong></div>
-              )}
-              <div className="summary-row"><span>Discount</span>
-                <input type="number" min={0} value={form.discount} onChange={set('discount')}
-                  style={{ width: 120, textAlign: 'right', padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
-              <div className="summary-row"><span style={{ color: '#dc2626', fontWeight: 600 }}>Advance</span>
-                <input type="number" min={0} value={form.advance} onChange={set('advance')}
-                  style={{ width: 120, textAlign: 'right', padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
-              <div className="summary-row" style={{ fontSize: 15 }}>
-                <strong>Grand Total</strong><strong style={{ color: 'hsl(var(--primary))' }}>{cur(grandTotal)}</strong></div>
-              <div className="summary-row" style={{ borderBottom: needsBank ? undefined : 'none' }}>
-                <span>Payment</span>
-                <select value={form.payment_mode} onChange={set('payment_mode')} className="form-select" style={{ width: 130 }}>
-                  {PAYMENTS.map(p => <option key={p}>{p}</option>)}
-                </select></div>
-              {needsBank && (
-                <>
-                  <div className="summary-row"><span>Our Bank</span>
-                    <input value={form.bank_name} onChange={set('bank_name')} placeholder="Bank account name"
-                      style={{ width: 160, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
-                  <div className="summary-row" style={{ borderBottom: 'none' }}><span>Cheque No</span>
-                    <input value={form.cheque_no} onChange={set('cheque_no')}
-                      style={{ width: 160, padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} /></div>
-                </>
-              )}
-            </div>
-            <div className="summary-row" style={{ padding: '8px 0 0', color: pending > 0 ? '#dc2626' : '#16a34a' }}>
-              <span>Pending</span><strong>{cur(pending)}</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Deliverables + workflow */}
-      <div className="page-cols" style={{ gridTemplateColumns: '1fr 1fr', marginTop: 16, alignItems: 'start' }}>
-        <div className="card">
-          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label className="checkbox-row" style={{ color: '#dc2626', fontWeight: 600 }}>
-              <input type="checkbox" checked={form.display_staff_expenses} onChange={chk('display_staff_expenses')} />
-              <span>Display Staff And Expenses</span>
-            </label>
-            <button type="button" className="btn btn-outline" onClick={() => setPanel(p => p==='final'?'':'final')}>Final Delivery &amp; Post Production</button>
-            {panel==='final' && <textarea rows={3} value={form.final_delivery_notes} onChange={set('final_delivery_notes')} />}
-            <button type="button" className="btn btn-outline" onClick={() => setPanel(p => p==='pre'?'':'pre')}>PreWedding Deliverables</button>
-            {panel==='pre' && <textarea rows={3} value={form.prewedding_deliverables} onChange={set('prewedding_deliverables')} />}
-            <button type="button" className="btn btn-outline" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => setPanel(p => p==='family'?'':'family')}>Family Detail</button>
-            {panel==='family' && <textarea rows={3} value={form.family_detail} onChange={set('family_detail')} />}
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-header"><div className="card-title">Status</div></div>
-          <div className="card-body">
-            <div className="checkbox-grid">
+          {/* 4 — work progress and notes */}
+          <section className="qf-card">
+            <h2 className="qf-sec"><span className="qf-step">4</span> Work Status &amp; Notes</h2>
+            <div className="qf-pills">
               {STATUS.map(([k, label]) => (
-                <label className="checkbox-row" key={k}>
-                  <input type="checkbox" checked={form[k]} onChange={chk(k)} /><span>{label}</span>
+                <label key={k} className={form[k] ? 'on' : undefined}>
+                  <input type="checkbox" checked={form[k]} onChange={chk(k)} />{form[k] && <Check size={13} />} {label}
                 </label>
               ))}
             </div>
-            <div className="form-grid" style={{ marginTop: 14 }}>
-              <div className="form-group"><label>Desining</label><input value={form.desining_opt} onChange={set('desining_opt')} /></div>
-              <div className="form-group"><label>Printing</label><input value={form.printing_opt} onChange={set('printing_opt')} /></div>
-              <div className="form-group"><label>DVD / Pendrive</label><input value={form.dvd_opt} onChange={set('dvd_opt')} /></div>
+            <div className="qf-fields" style={{ marginTop: 14 }}>
+              <label className="qf-field"><span>Designing</span><input value={form.desining_opt} onChange={set('desining_opt')} /></label>
+              <label className="qf-field"><span>Printing</span><input value={form.printing_opt} onChange={set('printing_opt')} /></label>
+              <label className="qf-field qf-span2"><span>DVD / Pendrive</span><input value={form.dvd_opt} onChange={set('dvd_opt')} /></label>
+              <label className="qf-field qf-span4"><span>Remark (prints on the bill)</span>
+                <textarea rows={2} value={form.remark} onChange={set('remark')} /></label>
+            </div>
+            <div className="qf-tabs">
+              {[['final', 'Final Delivery & Post Production', 'final_delivery_notes'],
+                ['pre', 'Pre-Wedding Deliverables', 'prewedding_deliverables'],
+                ['family', 'Family Detail', 'family_detail']].map(([k, label, field]) => (
+                <button type="button" key={k} className={panel === k ? 'on' : undefined} onClick={() => setPanel(p => p === k ? '' : k)}>
+                  {label}{form[field] ? ' •' : ''}
+                </button>
+              ))}
+              <label className="qf-tabs-chk"><input type="checkbox" checked={form.display_staff_expenses} onChange={chk('display_staff_expenses')} /> Display staff &amp; expenses</label>
+            </div>
+            {panel === 'final' && <textarea rows={3} value={form.final_delivery_notes} onChange={set('final_delivery_notes')} placeholder="Final delivery & post production notes…" />}
+            {panel === 'pre' && <textarea rows={3} value={form.prewedding_deliverables} onChange={set('prewedding_deliverables')} placeholder="Pre-wedding deliverables…" />}
+            {panel === 'family' && <textarea rows={3} value={form.family_detail} onChange={set('family_detail')} placeholder="Family members, contacts…" />}
+          </section>
+        </div>
+
+        {/* Totals, payment and every action in one sticky panel */}
+        <aside className="qf-side">
+          <div className="qf-card qf-sum">
+            <h2 className="qf-sec">Summary</h2>
+            <div className="qf-sum-row"><span>Items ({items.length})</span><span>{cur(linesTotal)}</span></div>
+            <div className="qf-sum-row"><span>Post production ({deliverables.length})</span><span>{cur(deliverablesTotal)}</span></div>
+            <div className="qf-sum-row strong"><span>Sub Total</span><span>{cur(subTotal)}</span></div>
+            <label className="qf-sum-row"><span>Discount (₹)</span>
+              <input type="number" min={0} value={form.discount} onChange={set('discount')} /></label>
+            <div className="qf-grand"><span>Grand Total</span><strong>{cur(grandTotal)}</strong></div>
+
+            <label className="qf-sum-row"><span>Advance (₹)</span>
+              <input type="number" min={0} value={form.advance} onChange={set('advance')} /></label>
+            <label className="qf-sum-row"><span>Paid by</span>
+              <select value={form.payment_mode} onChange={set('payment_mode')}>
+                {PAYMENTS.map(p => <option key={p}>{p}</option>)}
+              </select></label>
+            {needsBank && <>
+              <label className="qf-sum-row"><span>Our Bank</span>
+                <input value={form.bank_name} onChange={set('bank_name')} placeholder="Bank account" style={{ width: 150, textAlign: 'left' }} /></label>
+              <label className="qf-sum-row"><span>Cheque No</span>
+                <input value={form.cheque_no} onChange={set('cheque_no')} style={{ width: 150, textAlign: 'left' }} /></label>
+            </>}
+            <div className={`qf-pending${pending > 0 ? ' due' : ''}`}><span>Pending</span><strong>{cur(pending)}</strong></div>
+            {previousPending > 0 && <div className="qf-sum-row pur"><span>Previous pending (other bills)</span><span>{cur(previousPending)}</span></div>}
+
+            <button type="button" className="btn btn-primary qf-save" onClick={save} disabled={saving}>
+              <Save size={16} /> {saving ? 'Saving…' : 'Save Order'}
+            </button>
+            <div className="qf-actions">
+              <details className="qf-menu">
+                <summary className="btn btn-outline"><Printer size={15} /> Print <ChevronDown size={14} /></summary>
+                <div className="qf-menu-list" onClick={e => e.currentTarget.parentElement.removeAttribute('open')}>
+                  <button type="button" onClick={() => doPrint(true)}><Printer size={14} /> With rates</button>
+                  <button type="button" onClick={() => doPrint(false)}><Printer size={14} /> Without rates</button>
+                </div>
+              </details>
+              <details className="qf-menu">
+                <summary className="btn btn-outline"><Send size={15} /> Send <ChevronDown size={14} /></summary>
+                <div className="qf-menu-list right" onClick={e => e.currentTarget.parentElement.removeAttribute('open')}>
+                  <button type="button" onClick={openWhatsApp}><Send size={14} /> WhatsApp</button>
+                  <button type="button" onClick={openSMS}><MessageSquare size={14} /> SMS</button>
+                  <button type="button" onClick={openEmail}><Mail size={14} /> Email</button>
+                </div>
+              </details>
+            </div>
+            <div className="qf-actions-sub">
+              <button type="button" onClick={() => (isEdit ? nav('/outdoor-orders/new') : resetNew())}><X size={14} /> {isEdit ? 'New order' : 'Clear form'}</button>
+              {isEdit && <button type="button" className="del" onClick={remove}><Trash2 size={14} /> Delete</button>}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Action bar */}
-      <div className="quotation-actions">
-        <button className="btn btn-primary" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save'}</button>
-        <button className="btn btn-danger"  onClick={remove}><Trash2 size={15} /> Delete</button>
-        <button className="btn btn-outline" onClick={() => doPrint(true)}><Printer size={15} /> With Rate</button>
-        <button className="btn btn-outline" onClick={() => doPrint(false)}><Printer size={15} /> Without Rate</button>
-        <button className="btn btn-ghost"   onClick={() => nav('/outdoor-orders')}><X size={15} /> Cancel</button>
-        <button className="btn btn-ghost"   onClick={() => nav('/outdoor-orders')}><LogOut size={15} /> Exit</button>
-        <button className="btn btn-outline" onClick={openSMS}><MessageSquare size={15} /> Send SMS</button>
-        <button className="btn btn-outline" onClick={openWhatsApp}><Send size={15} /> WhatsApp</button>
-        <button className="btn btn-outline" onClick={openEmail}><Mail size={15} /> Send Email</button>
+        </aside>
       </div>
     </div>
   );

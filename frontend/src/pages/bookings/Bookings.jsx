@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Pencil, Trash2, CalendarCheck, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid, { formatCurrency } from '../../components/grid/DataGrid';
 
 const EVENT_TYPES = ['Wedding', 'Engagement', 'Birthday', 'Corporate', 'Pre-Wedding', 'Baby Shower', 'Anniversary', 'Other'];
 const STATUS_LIST = ['Pending', 'Confirmed', 'In Progress', 'Completed', 'Cancelled'];
@@ -21,14 +22,28 @@ const STATUS_BADGE = {
   Cancelled:   'badge-red',
 };
 
+const COLUMNS = [
+  { key: 'booking_no', header: 'Booking No', width: 110, cell: r => <span className="badge badge-blue">{r.booking_no}</span> },
+  { key: 'customer_name', header: 'Customer', width: 170, strong: true },
+  { key: 'customer_contact', header: 'Contact', width: 115 },
+  { key: 'event_type', header: 'Event Type', width: 110 },
+  { key: 'event_date', header: 'Event Date', width: 110, format: 'date' },
+  { key: 'photo_by', header: 'Photographer', width: 110 },
+  { key: 'gross_total', header: 'Amount', width: 105, format: 'currency', total: 'sum', strong: true },
+  { key: 'advance', header: 'Advance', width: 105, format: 'currency', total: 'sum',
+    cell: r => <span className="dg-pos">{formatCurrency(r.advance)}</span> },
+  { key: 'total_pending', header: 'Pending', width: 105, format: 'currency', total: 'sum',
+    cell: r => <span className={Number(r.total_pending) > 0 ? 'dg-neg' : 'dg-pos'}>{formatCurrency(r.total_pending)}</span> },
+  { key: 'status', header: 'Status', width: 100,
+    cell: r => <span className={`badge ${STATUS_BADGE[r.status] || 'badge-gray'}`}>{r.status}</span> },
+];
+
 export default function Bookings() {
   const [rows, setRows]     = useState([]);
   const [total, setTotal]   = useState(0);
   const [stats, setStats]   = useState({});
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage]     = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal]   = useState(null); // null | 'new' | row-object
   const [form, setForm]     = useState(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -37,13 +52,13 @@ export default function Bookings() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/bookings', { params: { search, page, limit: 25, status: statusFilter } });
+      const r = await api.get('/bookings', { params: { limit: 5000, status: statusFilter } });
       setRows(r.data.data || []);
       setTotal(r.data.total || 0);
       setStats(r.data.stats || {});
     } catch(e) { console.error(e); }
     finally { setLoading(false); }
-  }, [search, page, statusFilter]);
+  }, [statusFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -89,7 +104,6 @@ export default function Bookings() {
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const cur = n => n != null ? `₹${parseFloat(n).toLocaleString('en-IN')}` : '₹0';
-  const fmt = d => d ? new Date(d).toLocaleDateString('en-IN') : '—';
 
   const pending = (parseFloat(form.gross_total)||0) - (parseFloat(form.advance)||0);
 
@@ -122,85 +136,27 @@ export default function Bookings() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-toolbar">
-            <div className="search-box">
-              <Search size={15} className="search-icon" />
-              <input placeholder="Search by customer, booking no, contact..."
-                value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            </div>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16} /> New Booking</button>
-            <select className="filter-select" value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
-              <option value="">All Status</option>
-              {STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>BOOKING NO</th>
-                  <th>CUSTOMER</th>
-                  <th>CONTACT</th>
-                  <th>EVENT TYPE</th>
-                  <th>EVENT DATE</th>
-                  <th>PHOTOGRAPHER</th>
-                  <th>AMOUNT</th>
-                  <th>ADVANCE</th>
-                  <th>PENDING</th>
-                  <th>STATUS</th>
-                  <th></th>
-                </tr></thead>
-                <tbody>
-                  {rows.length === 0 && (
-                    <tr><td colSpan={11} className="table-empty">
-                      <CalendarCheck size={36} />
-                      <p>No bookings found. Click "New Booking" to add one.</p>
-                    </td></tr>
-                  )}
-                  {rows.map(r => (
-                    <tr key={r.id}>
-                      <td><span className="badge badge-blue">{r.booking_no}</span></td>
-                      <td><strong>{r.customer_name}</strong></td>
-                      <td>{r.customer_contact || '—'}</td>
-                      <td>{r.event_type || '—'}</td>
-                      <td>{fmt(r.event_date)}</td>
-                      <td>{r.photo_by || '—'}</td>
-                      <td>{cur(r.gross_total)}</td>
-                      <td style={{color:'#16a34a',fontWeight:600}}>{cur(r.advance)}</td>
-                      <td style={{color: r.total_pending > 0 ? '#dc2626' : '#16a34a', fontWeight:600}}>
-                        {cur(r.total_pending)}
-                      </td>
-                      <td>
-                        <span className={`badge ${STATUS_BADGE[r.status] || 'badge-gray'}`}>
-                          {r.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-btns">
-                          <button className="btn-edit" onClick={() => openEdit(r)}><Pencil size={14}/></button>
-                          <button className="btn-danger-soft" onClick={() => del(r.id)}><Trash2 size={14}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {total > 25 && (
-            <div className="pagination">
-              <button disabled={page === 1} onClick={() => setPage(p => p-1)}>Prev</button>
-              <span>Page {page} of {Math.ceil(total/25)}</span>
-              <button disabled={page >= Math.ceil(total/25)} onClick={() => setPage(p => p+1)}>Next</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="bookings"
+        columns={COLUMNS}
+        data={rows}
+        loading={loading}
+        defaultSort={[{ id: 'booking_no', desc: true }]}
+        searchPlaceholder="Search by customer, booking no, contact…"
+        emptyText='No bookings found. Click "New Booking" to add one.'
+        onRowClick={openEdit}
+        rowActions={r => <>
+          <button type="button" className="dg-act" title="Edit" onClick={() => openEdit(r)}><Pencil size={15} /></button>
+          <button type="button" className="dg-act del" title="Delete" onClick={() => del(r.id)}><Trash2 size={15} /></button>
+        </>}
+        toolbar={<>
+          <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="">All Status</option>
+            {STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <button type="button" className="btn btn-primary" onClick={openNew}><Plus size={16} /> New Booking</button>
+        </>}
+      />
 
       {/* Modal */}
       {modal && (

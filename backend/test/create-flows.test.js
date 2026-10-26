@@ -70,12 +70,6 @@ async function check(name, fn) {
       [o.rows[0].id, 'Photography', 100, 2, 200]);
   });
 
-  await test('studio-orders.create', async c => {
-    await c.query(
-      `INSERT INTO studio_orders(order_no,customer_address,customer_contact,inquiry_date,delivery_date,gross_total,subtotal)
-       VALUES($1,$2,$3,$4,$5,$6,$6)`,
-      ['STU-TEST', 'Cust', '900', '2026-07-03', '2026-07-10', 3000]);
-  });
 
   await test('sales.create (payment_mode=Cash)', async c => {
     await c.query(

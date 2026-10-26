@@ -1,15 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Pencil, Trash2, ListChecks, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid from '../../components/grid/DataGrid';
 
 const EMPTY = { item_name:'', qnty:'', item_type:'' };
+
+const COLUMNS = [
+  { key: 'item_name', header: 'Item Name', width: 280, strong: true },
+  { key: 'qnty', header: 'Qnty', width: 100, format: 'number' },
+  { key: 'item_type', header: 'Type', width: 180 },
+];
 
 export default function DeliverableItems() {
   const [rows, setRows]       = useState([]);
   const [types, setTypes]     = useState([]);
-  const [search, setSearch]   = useState('');
-  const [page, setPage]       = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState(null); // null | 'new' | row
   const [form, setForm]       = useState(EMPTY);
   const [saving, setSaving]   = useState(false);
@@ -18,10 +23,10 @@ export default function DeliverableItems() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/deliverable-items', { params: { search } });
+      const r = await api.get('/deliverable-items');
       setRows(r.data || []);
     } catch(e){ console.error(e); } finally { setLoading(false); }
-  }, [search]);
+  }, []);
 
   const loadTypes = useCallback(async () => {
     try {
@@ -58,10 +63,6 @@ export default function DeliverableItems() {
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const PAGE_SIZE = 25;
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
   return (
     <div className="page-container">
       <div className="page-header">
@@ -71,50 +72,21 @@ export default function DeliverableItems() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-toolbar">
-            <div className="search-box">
-              <Search size={15} className="search-icon"/>
-              <input placeholder="Search by item name, type..." value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            </div>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16}/> New Item</button>
-          </div>
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>ITEM NAME</th><th>QNTY</th><th>TYPE</th><th></th>
-                </tr></thead>
-                <tbody>
-                  {rows.length === 0 && <tr><td colSpan={4} className="table-empty"><ListChecks size={32}/><p>No items found</p></td></tr>}
-                  {pageRows.map(r => (
-                    <tr key={r.id}>
-                      <td><strong>{r.item_name}</strong></td>
-                      <td>{r.qnty ?? 0}</td>
-                      <td>{r.item_type || '-'}</td>
-                      <td>
-                        <div className="action-btns">
-                          <button className="btn-edit" onClick={() => openEdit(r)}><Pencil size={14}/></button>
-                          <button className="btn-danger-soft" onClick={() => del(r.id)}><Trash2 size={14}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {rows.length > PAGE_SIZE && (
-            <div className="pagination">
-              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
-              <span>Page {page} of {pageCount}</span>
-              <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="deliverable-items"
+        columns={COLUMNS}
+        data={rows}
+        loading={loading}
+        defaultSort={[{ id: 'item_name', desc: false }]}
+        searchPlaceholder="Search by item name, type…"
+        emptyText="No items found"
+        onRowClick={openEdit}
+        rowActions={r => <>
+          <button type="button" className="dg-act" title="Edit" onClick={() => openEdit(r)}><Pencil size={15} /></button>
+          <button type="button" className="dg-act del" title="Delete" onClick={() => del(r.id)}><Trash2 size={15} /></button>
+        </>}
+        toolbar={<button type="button" className="btn btn-primary" onClick={openNew}><Plus size={16} /> New Item</button>}
+      />
 
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(null)}>

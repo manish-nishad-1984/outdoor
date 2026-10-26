@@ -1,0 +1,116 @@
+/* Salesforce Lightning-style shell (preview). Everything is scoped under .sf so the classic
+   layout is untouched. Pages inside keep their v1 classes; only the tokens are re-pointed to the
+   Lightning blue so buttons/links/badges inside the preview match the shell. */
+
+.sf {
+  --sf-rail: #0b2f6f;
+  --sf-rail-hover: rgba(255, 255, 255, .10);
+  /* Lightning brand blue for everything that reads --primary inside the preview */
+  --primary: 210 99% 42%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 210 99% 42%;
+  --accent: 210 90% 96%;
+  --accent-foreground: 210 99% 32%;
+  --status-info: 210 99% 42%;
+
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-rows: 40px 36px minmax(0, 1fr) 34px;
+  grid-template-areas: "rail head" "rail tabs" "rail body" "rail foot";
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+/* light mode: Lightning's soft grey canvas behind white cards */
+:root:not([data-theme="dark"]) .sf { --background: 0 0% 95%; }
+[data-theme="dark"] .sf {
+  --sf-rail: #071d45;
+  --primary: 210 90% 62%;
+  --primary-foreground: 222 24% 8%;
+  --ring: 210 90% 62%;
+  --accent: 210 40% 18%;
+  --accent-foreground: 210 90% 82%;
+  --status-info: 210 90% 62%;
+}
+
+/* ---------- Left icon rail ---------- */
+.sf-rail {
+  grid-area: rail; background: var(--sf-rail); display: flex; flex-direction: column;
+  gap: 2px; padding: 10px 0; overflow-y: auto; scrollbar-width: none;
+}
+.sf-rail::-webkit-scrollbar { display: none; }
+.sf-rail-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px;
+  margin: 0 4px; border-radius: 8px; color: #fff; text-decoration: none;
+  font-size: 10.5px; font-weight: 700; line-height: 1.15; text-align: center;
+}
+.sf-rail-item:hover { background: var(--sf-rail-hover); }
+.sf-rail-ic { width: 42px; height: 38px; display: grid; place-items: center; border-radius: 8px; border: 2px solid transparent; }
+.sf-rail-item.active .sf-rail-ic { border-color: #fff; background: rgba(255, 255, 255, .14); }
+
+/* ---------- Header ---------- */
+/* Slim, AWS-console-height header (40px) */
+.sf-head {
+  grid-area: head; display: flex; align-items: center; gap: 12px; padding: 0 12px;
+  background: hsl(var(--card)); border-bottom: 1px solid hsl(var(--border));
+}
+.sf-logo { display: flex; align-items: center; gap: 7px; text-decoration: none; color: hsl(var(--primary)); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.sf-logo-mark { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: #0176d3; color: #fff; }
+.sf-head-search { flex: 1; display: flex; justify-content: center; min-width: 0; }
+.sf .topbar-search { width: min(440px, 100%); height: 28px; border-radius: 4px; background: hsl(var(--card)); border: 1px solid hsl(var(--input)); box-shadow: none; }
+.sf .topbar-search input { font-size: 13px; }
+.sf .topbar-search .kbd-hint { font-size: 10px; padding: 0 4px; }
+.sf .topbar-search:focus-within { border-color: hsl(var(--primary)); box-shadow: 0 0 0 1px hsl(var(--primary)); }
+.sf-head-right { display: flex; align-items: center; gap: 4px; }
+.sf-icon-btn { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; border: 0; background: none; color: hsl(var(--muted-foreground)); cursor: pointer; }
+/* compact profile chip: single line, small avatar */
+.sf .topbar-profile-btn { height: 30px; padding: 0 6px; gap: 6px; border: 0; box-shadow: none; background: none; }
+.sf .topbar-profile-btn:hover { background: hsl(var(--muted)); }
+.sf .topbar-profile-avatar { width: 24px; height: 24px; font-size: 11px; }
+.sf .topbar-profile-role { display: none; }
+.sf-icon-btn:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+
+/* ---------- Module tabs ---------- */
+.sf-tabs {
+  grid-area: tabs; display: flex; align-items: stretch; gap: 2px; padding: 0 16px;
+  background: hsl(var(--card)); border-bottom: 1px solid hsl(var(--border));
+  box-shadow: 0 2px 3px -2px rgb(0 0 0 / .14); overflow-x: auto; scrollbar-width: thin; z-index: 2;
+}
+.sf-app { display: flex; align-items: center; font-size: 16px; padding-right: 18px; white-space: nowrap; }
+.sf-tab {
+  display: flex; align-items: center; padding: 0 11px; font-size: 13px; font-weight: 500;
+  color: hsl(var(--foreground)); text-decoration: none; white-space: nowrap;
+  border-top: 3px solid transparent; border-bottom: 3px solid transparent;
+}
+.sf-tab:hover { background: hsl(var(--muted)); border-bottom-color: hsl(var(--border)); }
+.sf-tab.active { color: hsl(var(--primary)); border-bottom-color: hsl(var(--primary)); font-weight: 600; }
+
+/* ---------- Body ---------- */
+.sf-body { grid-area: body; overflow: auto; padding: 16px 20px; background: hsl(var(--background)); }
+
+/* ---------- Utility bar (footer) ---------- */
+.sf-foot {
+  grid-area: foot; display: flex; align-items: center; gap: 2px; padding: 0 10px;
+  background: hsl(var(--card)); border-top: 1px solid hsl(var(--border)); font-size: 12.5px; overflow-x: auto;
+}
+.sf-foot a, .sf-foot button {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 4px;
+  color: hsl(var(--foreground)); text-decoration: none; background: none; border: 0; cursor: pointer;
+  font: inherit; white-space: nowrap;
+}
+.sf-foot a:hover, .sf-foot button:hover { background: hsl(var(--muted)); }
+.sf-foot .spacer { flex: 1; }
+
+/* v1 pages with hard-coded tints (quotation form: darkseagreen headers, green/teal fills) —
+   re-tone them to Lightning's white card headers and grey table heads inside the preview. */
+.sf .quotation-form .card-header { background-color: hsl(var(--card)); }
+.sf .quotation-form .card-header .card-title { font-size: 15px; font-weight: 700; }
+.sf .quotation-form .form-grid { background-color: transparent; }
+.sf .quotation-form .data-table thead,
+.sf .quotation-form .data-table th { background-color: hsl(var(--muted)); }
+
+@media (max-width: 760px) {
+  .sf { grid-template-columns: 56px minmax(0, 1fr); }
+  .sf-rail-item .lbl, .sf-logo-text { display: none; }
+  .sf-rail-ic { width: 38px; height: 36px; }
+}

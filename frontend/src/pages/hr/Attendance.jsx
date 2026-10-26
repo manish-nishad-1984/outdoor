@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Clock, CheckCircle, XCircle, Minus, Coffee } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../api/axios';
+import DataGrid from '../../components/grid/DataGrid';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const STATUS_MAP = { P: 'Present', A: 'Absent', L: 'Leave', H: 'Half Day' };
@@ -73,8 +73,21 @@ export default function Attendance() {
     ? summary
     : employees.map(e => ({ id: e.id, name: e.username || e.name || `User ${e.id}`, present:0,absent:0,leave:0,half:0,total:0 }));
 
-  const totalPresent = summary.reduce((s,e) => s+e.present, 0);
-  const totalAbsent  = summary.reduce((s,e) => s+e.absent, 0);
+  // The % column depends on the selected month's length, so the specs are built per render.
+  const summaryColumns = useMemo(() => [
+    { key: 'name', header: 'Employee', width: 220, strong: true },
+    { key: 'present', header: 'Present', width: 90, align: 'center', format: 'number', total: 'sum',
+      cell: e => <span className="badge badge-green">{e.present}</span> },
+    { key: 'absent', header: 'Absent', width: 90, align: 'center', format: 'number', total: 'sum',
+      cell: e => <span className="badge badge-red">{e.absent}</span> },
+    { key: 'leave', header: 'Leave', width: 90, align: 'center', format: 'number', total: 'sum',
+      cell: e => <span className="badge badge-yellow">{e.leave}</span> },
+    { key: 'half', header: 'Half Day', width: 90, align: 'center', format: 'number', total: 'sum',
+      cell: e => <span className="badge badge-orange">{e.half}</span> },
+    { key: 'pct', header: '%', width: 80, align: 'center', value: e => pct(e.present),
+      cell: e => <span className={pct(e.present) >= 80 ? 'dg-pos' : 'dg-neg'}>{pct(e.present)}%</span> },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [daysInMonth]);
 
   return (
     <div className="page-container">
@@ -119,70 +132,16 @@ export default function Attendance() {
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 340px',gap:16,alignItems:'start'}}>
 
-        {/* Monthly Summary Table */}
-        <div className="card">
-          <div className="card-header">
-            <div className="card-title">Monthly Summary — {MONTHS[month-1]} {year}</div>
-          </div>
-          <div className="card-body" style={{padding:0}}>
-            {loading ? <div className="table-loading">Loading…</div> : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead><tr>
-                    <th>EMPLOYEE</th>
-                    <th style={{textAlign:'center'}}>PRESENT</th>
-                    <th style={{textAlign:'center'}}>ABSENT</th>
-                    <th style={{textAlign:'center'}}>LEAVE</th>
-                    <th style={{textAlign:'center'}}>HALF DAY</th>
-                    <th style={{textAlign:'center'}}>%</th>
-                  </tr></thead>
-                  <tbody>
-                    {summary.length === 0 && (
-                      <tr><td colSpan={6} className="table-empty">
-                        <Clock size={32}/>
-                        <p>No attendance data for this period</p>
-                      </td></tr>
-                    )}
-                    {summary.map(e => (
-                      <tr key={e.id}>
-                        <td><strong>{e.name}</strong></td>
-                        <td style={{textAlign:'center'}}>
-                          <span className="badge badge-green">{e.present}</span>
-                        </td>
-                        <td style={{textAlign:'center'}}>
-                          <span className="badge badge-red">{e.absent}</span>
-                        </td>
-                        <td style={{textAlign:'center'}}>
-                          <span className="badge badge-yellow">{e.leave}</span>
-                        </td>
-                        <td style={{textAlign:'center'}}>
-                          <span className="badge badge-orange">{e.half}</span>
-                        </td>
-                        <td style={{textAlign:'center'}}>
-                          <span style={{fontWeight:600,color: pct(e.present)>=80?'#16a34a':'#dc2626'}}>
-                            {pct(e.present)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  {summary.length > 0 && (
-                    <tfoot>
-                      <tr style={{background:'#f9fafb',fontWeight:700}}>
-                        <td>Total</td>
-                        <td style={{textAlign:'center'}}>{totalPresent}</td>
-                        <td style={{textAlign:'center'}}>{totalAbsent}</td>
-                        <td style={{textAlign:'center'}}>{summary.reduce((s,e)=>s+e.leave,0)}</td>
-                        <td style={{textAlign:'center'}}>{summary.reduce((s,e)=>s+e.half,0)}</td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Monthly Summary */}
+        <DataGrid
+          id="attendance"
+          columns={summaryColumns}
+          data={summary}
+          loading={loading}
+          defaultSort={[{ id: 'name', desc: false }]}
+          searchPlaceholder="Search employee…"
+          emptyText="No attendance data for this period"
+        />
 
         {/* Mark Today */}
         <div className="card">

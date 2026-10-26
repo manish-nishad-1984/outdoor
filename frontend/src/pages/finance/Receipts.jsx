@@ -1,14 +1,25 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, Search, X, Trash2 } from 'lucide-react';
+import { Plus, X, Trash2 } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid, { formatCurrency } from '../../components/grid/DataGrid';
+
+// Backend aliases voucher_no/payment_type/payment_date/cheque_no; fall back to the raw names.
+const COLUMNS = [
+  { key: 'receipt_no', header: 'Receipt #', width: 110, value: r => r.receipt_no || r.voucher_no,
+    cell: r => <span className="dg-link">{r.receipt_no || r.voucher_no}</span> },
+  { key: 'receipt_date', header: 'Date', width: 110, format: 'date', value: r => r.receipt_date || r.payment_date },
+  { key: 'amount', header: 'Amount', width: 130, format: 'currency', total: 'sum', strong: true,
+    cell: r => <span className="dg-pos">{formatCurrency(r.amount)}</span> },
+  { key: 'payment_mode', header: 'Mode', width: 110, value: r => r.payment_mode || r.payment_type,
+    cell: r => <span className="badge badge-gray">{r.payment_mode || r.payment_type}</span> },
+  { key: 'reference', header: 'Cheque No', width: 130, value: r => r.reference || r.cheque_no },
+  { key: 'remark', header: 'Remark', width: 240 },
+];
 
 const EMPTY = { voucher_no:'', amount:'', payment_type:'Cash', payment_date:'', cheque_no:'', remark:'' };
 
 export default function Receipts() {
   const [data, setData]     = useState([]);
-  const [total, setTotal]   = useState(0);
-  const [search, setSearch] = useState('');
-  const [page, setPage]     = useState(1);
   const [loading, setLoading] = useState(true);
   const [modal, setModal]   = useState(false);
   const [form, setForm]     = useState(EMPTY);
@@ -17,13 +28,13 @@ export default function Receipts() {
 
   const load = useCallback(() => {
     setLoading(true);
-    api.get('/receipts', { params: { search, page, limit: 25 } })
-      .then(r => { setData(r.data.data || []); setTotal(r.data.total || 0); })
+    api.get('/receipts', { params: { limit: 5000 } })
+      .then(r => setData(r.data.data || []))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [search, page]);
+  }, []);
 
-  useEffect(() => { const t = setTimeout(load, 400); return () => clearTimeout(t); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const openModal = () => {
     const today = new Date().toISOString().slice(0,10);
@@ -50,8 +61,7 @@ export default function Receipts() {
   };
 
   const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
-  const cur = n => `₹${Number(n||0).toLocaleString('en-IN')}`;
-  const fmt = d => d ? new Date(d).toLocaleDateString('en-IN') : '—';
+  const cur = formatCurrency;
 
   const totalReceived = data.reduce((s,d) => s+Number(d.amount||0), 0);
   const upiTotal  = data.filter(d=>d.payment_mode==='UPI').reduce((s,d)=>s+Number(d.amount||0),0);
@@ -63,7 +73,7 @@ export default function Receipts() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Receipts</h1>
-          <p className="page-subtitle">{total} total receipts</p>
+          <p className="page-subtitle">{data.length} total receipts</p>
         </div>
       </div>
 
@@ -74,47 +84,20 @@ export default function Receipts() {
         <div className="stat-card"><div className="stat-label">CHEQUE</div><div className="stat-value">{cur(chqTotal)}</div></div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-toolbar">
-            <div className="search-box">
-              <Search size={15} className="search-icon"/>
-              <input placeholder="Search client, receipt no..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            </div>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Receipt</button>
-          </div>
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>RECEIPT #</th><th>DATE</th><th>AMOUNT</th><th>MODE</th><th>CHEQUE NO</th><th>REMARK</th><th></th>
-                </tr></thead>
-                <tbody>
-                  {data.length === 0 && <tr><td colSpan={7} className="table-empty"><p>No receipts found</p></td></tr>}
-                  {data.map(r => (
-                    <tr key={r.id}>
-                      <td><span className="badge badge-blue">{r.receipt_no||r.voucher_no}</span></td>
-                      <td>{fmt(r.receipt_date||r.payment_date)}</td>
-                      <td style={{fontWeight:700,color:'#16a34a'}}>{cur(r.amount)}</td>
-                      <td><span className="badge badge-gray">{r.payment_mode||r.payment_type}</span></td>
-                      <td>{r.reference||r.cheque_no||'—'}</td>
-                      <td>{r.remark||'—'}</td>
-                      <td><button className="btn-danger-soft" onClick={() => del(r.id)}><Trash2 size={14}/></button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {total > 25 && (
-            <div className="pagination">
-              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
-              <span>Page {page} of {Math.ceil(total/25)}</span>
-              <button disabled={page>=Math.ceil(total/25)} onClick={() => setPage(p=>p+1)}>Next</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="receipts"
+        columns={COLUMNS}
+        data={data}
+        loading={loading}
+        defaultSort={[{ id: 'receipt_date', desc: true }]}
+        searchPlaceholder="Search receipt no, mode, remark…"
+        emptyText="No receipts found"
+        actionsWidth={56}
+        rowActions={r => (
+          <button type="button" className="dg-act del" title="Delete" onClick={() => del(r.id)}><Trash2 size={15} /></button>
+        )}
+        toolbar={<button type="button" className="btn btn-primary" onClick={openModal}><Plus size={16}/> New Receipt</button>}
+      />
 
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(false)}>

@@ -1,77 +1,71 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Pencil, Printer } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid, { formatCurrency } from '../../components/grid/DataGrid';
+
+const pendingOf = s => Number(s.net_amount || 0) - Number(s.amount_received || 0);
+const statusOf = s => {
+  const received = Number(s.amount_received || 0);
+  const pending = pendingOf(s);
+  return pending <= 0 ? { cls: 'badge-green', label: 'Paid' } : received > 0 ? { cls: 'badge-orange', label: 'Partial' } : { cls: 'badge-red', label: 'Due' };
+};
+
+const COLUMNS = [
+  { key: 'invoice_no', header: 'Invoice #', width: 110, cell: s => <span className="dg-link">{s.invoice_no}</span> },
+  { key: 'party_name', header: 'Client', width: 220, strong: true },
+  { key: 'sale_date', header: 'Date', width: 110, format: 'date' },
+  { key: 'gross_amount', header: 'Gross', width: 120, format: 'currency', total: 'sum' },
+  { key: 'discount', header: 'Discount', width: 110, format: 'currency', total: 'sum',
+    cell: s => <span className="dg-neg">{formatCurrency(s.discount)}</span> },
+  { key: 'net_amount', header: 'Net Total', width: 130, format: 'currency', total: 'sum', strong: true },
+  { key: 'amount_received', header: 'Received', width: 120, format: 'currency', total: 'sum',
+    cell: s => <span className="dg-pos">{formatCurrency(s.amount_received)}</span> },
+  { key: 'pending', header: 'Pending', width: 120, format: 'currency', total: 'sum', value: pendingOf,
+    cell: s => <span className={pendingOf(s) > 0 ? 'dg-neg' : 'dg-pos'}>{formatCurrency(pendingOf(s))}</span> },
+  { key: 'status', header: 'Status', width: 110, value: s => statusOf(s).label,
+    cell: s => { const st = statusOf(s); return <span className={`badge ${st.cls}`}><span className="badge-dot" />{st.label}</span>; } },
+];
 
 export default function Sales() {
+  const nav = useNavigate();
   const [data, setData] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const load = () => {
+  useEffect(() => {
     setLoading(true);
-    api.get('/sales', { params: { search } })
-      .then(r => { setData(r.data.data); setTotal(r.data.total); })
+    api.get('/sales', { params: { limit: 5000 } })
+      .then(r => setData(r.data.data || []))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { const t = setTimeout(load, 400); return () => clearTimeout(t); }, [search]);
-  useEffect(() => { load(); }, []);
+  const received = data.reduce((s, d) => s + Number(d.amount_received || 0), 0);
+  const pending  = data.reduce((s, d) => s + Math.max(0, pendingOf(d)), 0);
 
   return (
     <div>
       <div className="stats-grid" style={{ marginBottom: 20 }}>
-        <div className="stat-card"><div className="stat-icon green">💰</div><div><div className="stat-label">Total Sales</div><div className="stat-value">{total}</div></div></div>
-        <div className="stat-card"><div className="stat-icon blue">✅</div><div><div className="stat-label">Received</div><div className="stat-value">₹{data.reduce((s,d)=>s+Number(d.amount_received||0),0).toLocaleString('en-IN')}</div></div></div>
-        <div className="stat-card"><div className="stat-icon red">⏳</div><div><div className="stat-label">Pending</div><div className="stat-value">₹{data.reduce((s,d)=>s+Math.max(0,Number(d.net_amount||0)-Number(d.amount_received||0)),0).toLocaleString('en-IN')}</div></div></div>
-        <div className="stat-card"><div className="stat-icon orange">🧾</div><div><div className="stat-label">Invoices</div><div className="stat-value">{total}</div></div></div>
+        <div className="stat-card"><div className="stat-icon green">💰</div><div><div className="stat-label">Total Sales</div><div className="stat-value">{data.length}</div></div></div>
+        <div className="stat-card"><div className="stat-icon blue">✅</div><div><div className="stat-label">Received</div><div className="stat-value">{formatCurrency(received)}</div></div></div>
+        <div className="stat-card"><div className="stat-icon red">⏳</div><div><div className="stat-label">Pending</div><div className="stat-value">{formatCurrency(pending)}</div></div></div>
+        <div className="stat-card"><div className="stat-icon orange">🧾</div><div><div className="stat-label">Invoices</div><div className="stat-value">{data.length}</div></div></div>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <div className="card-title">Sales Invoices</div>
-          <Link to="/sales/new" className="btn btn-primary">＋ New Sale</Link>
-        </div>
-        <div className="toolbar">
-          <div className="toolbar-left">
-            <div className="search-box"><span>🔍</span><input placeholder="Search invoice, client…" value={search} onChange={e => setSearch(e.target.value)} /></div>
-          </div>
-          <div className="toolbar-right"><button className="btn btn-outline">⬇ Export</button></div>
-        </div>
-        <div className="table-wrap">
-          {loading ? <div className="loading">Loading…</div> : (
-            <table>
-              <thead>
-                <tr><th>Invoice #</th><th>Client</th><th>Date</th><th>Gross</th><th>Discount</th><th>Net Total</th><th>Received</th><th>Pending</th><th>Status</th><th>Action</th></tr>
-              </thead>
-              <tbody>
-                {data.map(s => {
-                  const received = Number(s.amount_received || 0);
-                  const pending = Number(s.net_amount || 0) - received;
-                  const status = pending <= 0 ? { cls: 'badge-green', label: 'Paid' } : received > 0 ? { cls: 'badge-orange', label: 'Partial' } : { cls: 'badge-red', label: 'Due' };
-                  return (
-                    <tr key={s.id}>
-                      <td><Link to={`/sales/${s.id}`} style={{ color: 'hsl(var(--primary))', fontWeight: 700 }}>{s.invoice_no}</Link></td>
-                      <td>{s.party_name}</td>
-                      <td>{s.sale_date ? new Date(s.sale_date).toLocaleDateString('en-IN') : '—'}</td>
-                      <td>₹{Number(s.gross_amount).toLocaleString('en-IN')}</td>
-                      <td style={{ color: '#ef4444' }}>₹{Number(s.discount||0).toLocaleString('en-IN')}</td>
-                      <td style={{ fontWeight: 700 }}>₹{Number(s.net_amount).toLocaleString('en-IN')}</td>
-                      <td style={{ color: '#22c55e', fontWeight: 600 }}>₹{received.toLocaleString('en-IN')}</td>
-                      <td style={{ color: pending > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>₹{pending.toLocaleString('en-IN')}</td>
-                      <td><span className={`badge ${status.cls}`}><span className="badge-dot" />{status.label}</span></td>
-                      <td><div className="action-btns"><Link to={`/sales/${s.id}`} className="btn btn-outline btn-sm btn-icon">✏️</Link><button className="btn btn-outline btn-sm btn-icon">🖨</button></div></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-        <div className="pagination">
-          <div className="pagination-info">Total: {total} invoices</div>
-        </div>
-      </div>
+      <DataGrid
+        id="sales"
+        columns={COLUMNS}
+        data={data}
+        loading={loading}
+        defaultSort={[{ id: 'sale_date', desc: true }]}
+        searchPlaceholder="Search invoice, client…"
+        emptyText="No sales invoices yet"
+        onRowClick={s => nav(`/sales/${s.id}`)}
+        rowActions={s => <>
+          <button type="button" className="dg-act" title="Edit" onClick={() => nav(`/sales/${s.id}`)}><Pencil size={15} /></button>
+          <button type="button" className="dg-act" title="Print"><Printer size={15} /></button>
+        </>}
+        toolbar={<Link to="/sales/new" className="btn btn-primary">＋ New Sale</Link>}
+      />
     </div>
   );
 }

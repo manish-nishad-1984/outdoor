@@ -1,23 +1,45 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Trash2, Palette, X, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Trash2, X } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid, { formatDate } from '../../components/grid/DataGrid';
 
 const JOB_TYPES = ['Album','Video','Invitation','Reels','Canvas','Other'];
 const STATUSES   = ['Pending','In Progress','Completed'];
-const STATUS_BADGE = { Pending:'badge-yellow', 'In Progress':'badge-blue', Completed:'badge-green', Overdue:'badge-red' };
 
 const EMPTY_JOB = { employee_id:'', job_type:'Album', due_date:'', status:'Pending', items:[] };
 const EMPTY_ITEM = { couple_name:'', item_name:'', job_no:'', studio_name:'', unit:'pcs', quantity:1, rate:0, total:0 };
 
+// Status cell is an inline select, so the column spec is built with the change handler.
+const buildColumns = changeStatus => [
+  { key: 'inquiry_date', header: 'Date', width: 110, format: 'date' },
+  { key: 'job_type', header: 'Type', width: 120, value: r => r.job_type || 'Album',
+    cell: r => <span className="badge badge-blue">{r.job_type || 'Album'}</span> },
+  { key: 'couple_name', header: 'Couple / Item', width: 220, strong: true },
+  { key: 'employee_name', header: 'Designer', width: 150 },
+  { key: 'due_date', header: 'Due Date', width: 110, format: 'date',
+    cell: r => <span className={r.status === 'Overdue' ? 'dg-neg' : undefined}>{r.due_date ? formatDate(r.due_date) : '—'}</span> },
+  { key: 'item_count', header: 'Items', width: 100, align: 'center',
+    cell: r => <span className="badge badge-gray">{r.item_count} item(s)</span> },
+  { key: 'subtotal', header: 'Amount', width: 120, format: 'currency', total: 'sum', strong: true },
+  { key: 'status', header: 'Status', width: 140,
+    cell: r => (
+      <select
+        className="filter-select"
+        style={{fontSize:11,padding:'2px 6px',height:24,width:'auto'}}
+        value={r.status}
+        onChange={e => changeStatus(r.id, e.target.value)}>
+        {STATUSES.map(s=><option key={s}>{s}</option>)}
+        <option value="Overdue">Overdue</option>
+      </select>
+    ) },
+];
+
 export default function DesignJobs() {
   const [rows, setRows]     = useState([]);
-  const [total, setTotal]   = useState(0);
   const [stats, setStats]   = useState({});
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter]   = useState('');
-  const [page, setPage]     = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal]   = useState(false);
   const [form, setForm]     = useState(EMPTY_JOB);
   const [saving, setSaving] = useState(false);
@@ -27,10 +49,10 @@ export default function DesignJobs() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/design-jobs', { params: { search, page, limit: 25, status: statusFilter, job_type: typeFilter } });
-      setRows(r.data.data || []); setTotal(r.data.total || 0); setStats(r.data.stats || {});
+      const r = await api.get('/design-jobs', { params: { limit: 5000, status: statusFilter, job_type: typeFilter } });
+      setRows(r.data.data || []); setStats(r.data.stats || {});
     } catch(e){ console.error(e); } finally { setLoading(false); }
-  }, [search, page, statusFilter, typeFilter]);
+  }, [statusFilter, typeFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -68,10 +90,12 @@ export default function DesignJobs() {
     finally { setSaving(false); }
   };
 
-  const changeStatus = async (id, status) => {
+  const changeStatus = useCallback(async (id, status) => {
     try { await api.put(`/design-jobs/${id}/status`, { status }); load(); }
     catch { alert('Failed to update status'); }
-  };
+  }, [load]);
+
+  const columns = useMemo(() => buildColumns(changeStatus), [changeStatus]);
 
   const del = async (id) => {
     if (!confirm('Delete design job?')) return;
@@ -79,8 +103,6 @@ export default function DesignJobs() {
   };
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
-  const fmt = d => d ? new Date(d).toLocaleDateString('en-IN') : '-';
-  const cur = n => n!=null ? `₹${parseFloat(n).toLocaleString('en-IN')}` : '₹0';
   const subtotal = form.items.reduce((s,it)=>s+parseFloat(it.total||0),0);
 
   return (
@@ -88,7 +110,7 @@ export default function DesignJobs() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Design Jobs</h1>
-          <p className="page-subtitle">{total} total jobs</p>
+          <p className="page-subtitle">{rows.length} total jobs</p>
         </div>
       </div>
 
@@ -100,70 +122,31 @@ export default function DesignJobs() {
         <div className="stat-card"><div className="stat-label">COMPLETED</div><div className="stat-value" style={{color:'#16a34a'}}>{stats.completed||0}</div></div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-toolbar">
-            <div className="search-box">
-              <Search size={15} className="search-icon"/>
-              <input placeholder="Search by couple name, item..." value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            </div>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Design Job</button>
-            <select className="filter-select" value={typeFilter} onChange={e=>{setTypeFilter(e.target.value);setPage(1);}}>
-              <option value="">All Types</option>
-              {JOB_TYPES.map(t=><option key={t}>{t}</option>)}
-            </select>
-            <select className="filter-select" value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setPage(1);}}>
-              <option value="">All Status</option>
-              {STATUSES.map(s=><option key={s}>{s}</option>)}
-              <option value="Overdue">Overdue</option>
-            </select>
-          </div>
-
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>DATE</th><th>TYPE</th><th>COUPLE / ITEM</th><th>DESIGNER</th>
-                  <th>DUE DATE</th><th>ITEMS</th><th>AMOUNT</th><th>STATUS</th><th></th>
-                </tr></thead>
-                <tbody>
-                  {rows.length === 0 && <tr><td colSpan={9} className="table-empty"><Palette size={32}/><p>No design jobs found</p></td></tr>}
-                  {rows.map(r => (
-                    <tr key={r.id}>
-                      <td>{fmt(r.inquiry_date)}</td>
-                      <td><span className="badge badge-blue">{r.job_type||'Album'}</span></td>
-                      <td>{r.couple_name || '-'}</td>
-                      <td>{r.employee_name || '-'}</td>
-                      <td style={{color: r.status==='Overdue'?'#dc2626':'inherit'}}>{fmt(r.due_date)}</td>
-                      <td><span className="badge badge-gray">{r.item_count} item(s)</span></td>
-                      <td>{cur(r.subtotal)}</td>
-                      <td>
-                        <select
-                          className="filter-select"
-                          style={{fontSize:11,padding:'2px 6px',height:24,width:'auto'}}
-                          value={r.status}
-                          onChange={e => changeStatus(r.id, e.target.value)}>
-                          {STATUSES.map(s=><option key={s}>{s}</option>)}
-                          <option value="Overdue">Overdue</option>
-                        </select>
-                      </td>
-                      <td><button className="btn-danger-soft" onClick={()=>del(r.id)}><Trash2 size={14}/></button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {total > 25 && (
-            <div className="pagination">
-              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
-              <span>Page {page} of {Math.ceil(total/25)}</span>
-              <button disabled={page>=Math.ceil(total/25)} onClick={() => setPage(p=>p+1)}>Next</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="design-jobs"
+        columns={columns}
+        data={rows}
+        loading={loading}
+        defaultSort={[{ id: 'inquiry_date', desc: true }]}
+        searchPlaceholder="Search couple, designer, type…"
+        emptyText="No design jobs found"
+        actionsWidth={56}
+        rowActions={r => (
+          <button type="button" className="dg-act del" title="Delete" onClick={() => del(r.id)}><Trash2 size={15} /></button>
+        )}
+        toolbar={<>
+          <select className="filter-select" value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}>
+            <option value="">All Types</option>
+            {JOB_TYPES.map(t=><option key={t}>{t}</option>)}
+          </select>
+          <select className="filter-select" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
+            <option value="">All Status</option>
+            {STATUSES.map(s=><option key={s}>{s}</option>)}
+            <option value="Overdue">Overdue</option>
+          </select>
+          <button type="button" className="btn btn-primary" onClick={openModal}><Plus size={16}/> New Design Job</button>
+        </>}
+      />
 
       {/* Modal */}
       {modal && (

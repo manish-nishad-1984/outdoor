@@ -1,0 +1,85 @@
+/* Outdoor Party Payment — page-specific pieces on top of the shared docForm layout. */
+
+.op-editing {
+  font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  background: hsl(32 95% 50% / .15); color: hsl(28 90% 38%);
+}
+.op-find {
+  margin-left: auto; display: flex; align-items: center; height: 34px; border-radius: 8px; overflow: hidden;
+  border: 1px solid hsl(var(--border)); background: hsl(var(--card));
+}
+.qf .op-find input { width: 150px; height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+.op-find button {
+  height: 100%; width: 36px; display: grid; place-items: center; border: 0; cursor: pointer;
+  border-left: 1px solid hsl(var(--border)); background: hsl(var(--muted)); color: hsl(var(--foreground));
+}
+.op-find button:hover { background: hsl(var(--accent)); }
+/* Tailwind preflight makes svg display:block; keep label/hint icons inline with their text. */
+.qf-field > span svg, .qf-hint svg { display: inline-block; vertical-align: -2px; margin-right: 3px; }
+
+/* Party summary tiles */
+.op-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.op-tiles > div {
+  padding: 10px 14px; border-radius: 8px; border: 1px solid hsl(var(--border)); background: hsl(var(--muted) / .5);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.op-tiles span { font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); }
+.op-tiles strong { font-size: 19px; font-weight: 800; }
+.op-tiles .ok strong { color: hsl(142 60% 34%); }
+.op-tiles .due strong { color: hsl(var(--destructive)); }
+[data-theme="dark"] .op-tiles .ok strong { color: hsl(142 55% 60%); }
+
+/* Pending bill cards */
+.op-bills { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.op-bill {
+  display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; text-align: left; cursor: pointer;
+  border-radius: 10px; border: 1.5px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--foreground)); font: inherit;
+}
+.op-bill:hover { border-color: hsl(var(--primary) / .6); }
+.op-bill.on { border-color: hsl(var(--primary)); background: hsl(var(--accent) / .7); box-shadow: 0 0 0 2px hsl(var(--primary) / .15); }
+.op-bill.paid { opacity: .7; }
+.op-bill-head { display: flex; align-items: baseline; gap: 8px; }
+.op-bill-head b { font-size: 14.5px; }
+.op-bill-head small { font-size: 12px; color: hsl(var(--muted-foreground)); }
+.op-bill-check { margin-left: auto; color: hsl(var(--primary)); align-self: center; }
+.op-bar { height: 6px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden; }
+.op-bar span { display: block; height: 100%; border-radius: inherit; background: hsl(142 60% 42%); }
+.op-bill-nums { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: hsl(var(--muted-foreground)); }
+.op-bill-nums .due { color: hsl(var(--destructive)); font-weight: 700; }
+.op-bill-nums .ok { color: hsl(142 60% 34%); font-weight: 700; }
+
+.op-empty { text-align: center; color: hsl(var(--muted-foreground)); padding: 22px 6px !important; }
+.qf-table tfoot tr.op-total td { padding: 10px 6px; font-weight: 700; border-bottom: 0; }
+
+/* Recent payments (no party picked yet) */
+.op-list { display: flex; flex-direction: column; }
+.op-recent {
+  display: flex; align-items: center; gap: 12px; padding: 10px 6px; text-align: left; cursor: pointer;
+  border: 0; border-bottom: 1px solid hsl(var(--border)); background: none; color: hsl(var(--foreground)); font: inherit;
+}
+.op-recent:hover { background: hsl(var(--accent) / .55); }
+.op-recent-no { font-weight: 700; color: hsl(var(--primary)); width: 56px; }
+.op-recent-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.op-recent-main small { font-size: 12px; color: hsl(var(--muted-foreground)); }
+.op-amt { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Receive-payment panel */
+.op-gap { margin-bottom: 12px; }
+.op-types { display: flex; flex-wrap: wrap; gap: 6px; }
+.op-types button {
+  flex: 1 1 auto; height: 32px; padding: 0 10px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 700;
+  border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--muted-foreground));
+}
+.op-types button:hover { border-color: hsl(var(--primary)); color: hsl(var(--foreground)); }
+.op-types button.on { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.op-amt-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.op-amt-label button {
+  padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; color: hsl(var(--primary));
+}
+.qf input.op-amount { height: 44px; font-size: 20px; font-weight: 800; text-align: right; }
+
+@media (max-width: 640px) {
+  .op-tiles { grid-template-columns: minmax(0, 1fr); }
+  .op-find { margin-left: 0; }
+  .qf-top { flex-wrap: wrap; }
+}

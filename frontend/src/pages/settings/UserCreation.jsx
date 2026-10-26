@@ -1,17 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { UserPlus, Trash2 } from 'lucide-react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
+import DataGrid from '../../components/grid/DataGrid';
 
 // Web port of legacy FrmUserCreation.vb (OPT_LOGIN) — see attached reference screenshot.
 // User Type list matches the legacy CmbUType options exactly.
 const USER_TYPES = ['ADMINISTRATOR', 'USER', 'GUEST'];
 const EMPTY = { id: null, user_type: 'ADMINISTRATOR', username: '', password: '', confirm: '' };
 
+// sr / is_me are added client-side (see gridRows) so the column spec can stay module-level.
+const COLUMNS = [
+  { key: 'sr', header: 'Sr.No.', width: 80, format: 'number' },
+  { key: 'user_type', header: 'User Type', width: 200, value: u => `${u.user_type || ''}${u.is_me ? ' (you)' : ''}` },
+  { key: 'username', header: 'User Name', width: 240, strong: true },
+];
+
 export default function UserCreation() {
   const { user: me } = useAuth();
   const [users, setUsers]     = useState([]);
-  const [page, setPage]       = useState(1);
   const [loading, setLoading] = useState(true);
   const [form, setForm]       = useState(EMPTY);
   const [editMode, setEditMode] = useState(false);
@@ -75,9 +82,7 @@ export default function UserCreation() {
     }
   };
 
-  const PAGE_SIZE = 25;
-  const pageCount = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
-  const pageUsers = users.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const gridRows = useMemo(() => users.map((u, i) => ({ ...u, sr: i + 1, is_me: me?.id === u.id })), [users, me]);
 
   return (
     <div className="page-container">
@@ -121,43 +126,19 @@ export default function UserCreation() {
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header"><div className="card-title">Users</div></div>
-          <div className="card-body" style={{ padding: 0 }}>
-            {loading ? <div className="table-loading">Loading…</div> : (
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead><tr><th style={{ width: 70 }}>Sr.No.</th><th>User Type</th><th>User Name</th></tr></thead>
-                  <tbody>
-                    {users.length === 0 && (
-                      <tr><td colSpan={3} className="table-empty"><p>No users found</p></td></tr>
-                    )}
-                    {pageUsers.map((u, i) => (
-                      <tr
-                        key={u.id}
-                        onClick={() => selectRow(u)}
-                        className={form.id === u.id ? 'bg-accent' : undefined}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td>{(page - 1) * PAGE_SIZE + i + 1}</td>
-                        <td>{u.user_type}{me?.id === u.id ? ' (you)' : ''}</td>
-                        <td>{u.username}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {users.length > PAGE_SIZE && (
-              <div className="pagination">
-                <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
-                <span>Page {page} of {pageCount}</span>
-                <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
-              </div>
-            )}
-          </div>
-        </div>
       </form>
+
+      <DataGrid
+        id="user-creation"
+        columns={COLUMNS}
+        data={gridRows}
+        loading={loading}
+        defaultSort={[{ id: 'sr', desc: false }]}
+        searchPlaceholder="Search user name, type…"
+        emptyText="No users found"
+        onRowClick={selectRow}
+        rowClassName={u => (form.id === u.id ? 'bg-accent' : undefined)}
+      />
     </div>
   );
 }

@@ -1,14 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Pencil, Trash2, CalendarCheck, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid from '../../components/grid/DataGrid';
 
 const EMPTY = { event_name: '', not_use: false };
 
+const COLUMNS = [
+  { key: 'event_name', header: 'Event Name', width: 300, strong: true },
+  { key: 'not_use', header: 'Not Use', width: 110, align: 'center', value: r => (r.not_use ? 'Yes' : 'No'),
+    cell: r => <span className={`badge ${r.not_use ? 'badge-green' : 'badge-gray'}`}>{r.not_use ? 'Yes' : 'No'}</span> },
+];
+
 export default function EventMaster() {
   const [rows, setRows]       = useState([]);
-  const [search, setSearch]   = useState('');
-  const [page, setPage]       = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState(null); // null | 'new' | row
   const [form, setForm]       = useState(EMPTY);
   const [saving, setSaving]   = useState(false);
@@ -17,10 +22,10 @@ export default function EventMaster() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/events', { params: { search } });
+      const r = await api.get('/events');
       setRows(r.data || []);
     } catch(e){ console.error(e); } finally { setLoading(false); }
-  }, [search]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -45,11 +50,6 @@ export default function EventMaster() {
   };
 
   const set   = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
-  const flag  = v => v ? <Check size={15} className="flag-yes" /> : <span className="flag-no">–</span>;
-
-  const PAGE_SIZE = 25;
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="page-container">
@@ -60,51 +60,21 @@ export default function EventMaster() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-toolbar">
-            <div className="search-box">
-              <Search size={15} className="search-icon"/>
-              <input placeholder="Search event name..." value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            </div>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openNew}><Plus size={16}/> New Event</button>
-          </div>
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>EVENT NAME</th>
-                  <th style={{textAlign:'center'}}>NOT USE</th>
-                  <th></th>
-                </tr></thead>
-                <tbody>
-                  {rows.length === 0 && <tr><td colSpan={3} className="table-empty"><CalendarCheck size={32}/><p>No events found</p></td></tr>}
-                  {pageRows.map(r => (
-                    <tr key={r.id}>
-                      <td><strong>{r.event_name}</strong></td>
-                      <td style={{textAlign:'center'}}>{flag(r.not_use)}</td>
-                      <td>
-                        <div className="action-btns">
-                          <button className="btn-edit" onClick={() => openEdit(r)}><Pencil size={14}/></button>
-                          <button className="btn-danger-soft" onClick={() => del(r.id)}><Trash2 size={14}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {rows.length > PAGE_SIZE && (
-            <div className="pagination">
-              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
-              <span>Page {page} of {pageCount}</span>
-              <button disabled={page>=pageCount} onClick={() => setPage(p=>p+1)}>Next</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="event-master"
+        columns={COLUMNS}
+        data={rows}
+        loading={loading}
+        defaultSort={[{ id: 'event_name', desc: false }]}
+        searchPlaceholder="Search event name…"
+        emptyText="No events found"
+        onRowClick={openEdit}
+        rowActions={r => <>
+          <button type="button" className="dg-act" title="Edit" onClick={() => openEdit(r)}><Pencil size={15} /></button>
+          <button type="button" className="dg-act del" title="Delete" onClick={() => del(r.id)}><Trash2 size={15} /></button>
+        </>}
+        toolbar={<button type="button" className="btn btn-primary" onClick={openNew}><Plus size={16} /> New Event</button>}
+      />
 
       {modal && (
         <div className="modal-overlay" onClick={() => setModal(null)}>

@@ -10,7 +10,6 @@ app.use(express.json());
 // Routes
 app.use('/api/auth',            require('./routes/auth'));
 app.use('/api/outdoor-orders',  require('./routes/outdoorOrders'));
-app.use('/api/studio-orders',   require('./routes/studioOrders'));
 app.use('/api/sales',           require('./routes/sales'));
 app.use('/api/receipts',        require('./routes/receipts'));
 app.use('/api/accounts',        require('./routes/accounts'));

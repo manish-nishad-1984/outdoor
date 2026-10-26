@@ -1,19 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Trash2, Printer, X } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import api from '../../api/axios';
+import DataGrid, { formatCurrency } from '../../components/grid/DataGrid';
 
 const JOB_TYPES = ['Photos','Album','Flex','Canvas','Other'];
 const EMPTY = { party_name:'', contact:'', address:'', job_type:'Photos', remark:'', items:[] };
 const EMPTY_ITEM = { file_name:'', order_date:'', paid_amount:0, net_amount:0, amount:0 };
 
+const COLUMNS = [
+  { key: 'party_name', header: 'Party Name', width: 220, strong: true },
+  { key: 'contact', header: 'Contact', width: 130 },
+  { key: 'job_type', header: 'Type', width: 110, value: r => r.job_type || 'Photos',
+    cell: r => <span className="badge badge-blue">{r.job_type || 'Photos'}</span> },
+  { key: 'inquiry_date', header: 'Date', width: 110, format: 'date' },
+  { key: 'item_count', header: 'Items', width: 100, align: 'center',
+    cell: r => <span className="badge badge-gray">{r.item_count} item(s)</span> },
+  { key: 'subtotal', header: 'Subtotal', width: 120, format: 'currency', total: 'sum', strong: true },
+  { key: 'remark', header: 'Remark', width: 200, cell: r => r.remark || <span className="dg-muted">—</span> },
+];
+
 export default function Exposing() {
   const [rows, setRows]       = useState([]);
-  const [total, setTotal]     = useState(0);
   const [stats, setStats]     = useState({});
-  const [search, setSearch]   = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [page, setPage]       = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal]     = useState(false);
   const [form, setForm]       = useState(EMPTY);
   const [saving, setSaving]   = useState(false);
@@ -22,10 +32,10 @@ export default function Exposing() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/exposing', { params: { search, page, limit: 25, job_type: typeFilter } });
-      setRows(r.data.data || []); setTotal(r.data.total || 0); setStats(r.data.stats || {});
+      const r = await api.get('/exposing', { params: { limit: 5000, job_type: typeFilter } });
+      setRows(r.data.data || []); setStats(r.data.stats || {});
     } catch(e){ console.error(e); } finally { setLoading(false); }
-  }, [search, page, typeFilter]);
+  }, [typeFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -63,8 +73,6 @@ export default function Exposing() {
   };
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
-  const fmt = d => d ? new Date(d).toLocaleDateString('en-IN') : '-';
-  const cur = n => n!=null ? `₹${parseFloat(n).toLocaleString('en-IN')}` : '₹0';
   const subtotal = form.items.reduce((s,it)=>s+parseFloat(it.amount||0),0);
 
   return (
@@ -72,7 +80,7 @@ export default function Exposing() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Exposing / Printing</h1>
-          <p className="page-subtitle">{total} total print jobs</p>
+          <p className="page-subtitle">{rows.length} total print jobs</p>
         </div>
       </div>
 
@@ -81,58 +89,29 @@ export default function Exposing() {
         <div className="stat-card card-accent"><div className="stat-label">TOTAL JOBS</div><div className="stat-value">{stats.total||0}</div></div>
         <div className="stat-card"><div className="stat-label">PHOTOS</div><div className="stat-value" style={{color:'hsl(var(--primary))'}}>{stats.photos||0}</div></div>
         <div className="stat-card"><div className="stat-label">ALBUM</div><div className="stat-value" style={{color:'#7c3aed'}}>{stats.album||0}</div></div>
-        <div className="stat-card"><div className="stat-label">TOTAL VALUE</div><div className="stat-value" style={{color:'#16a34a'}}>{cur(stats.total_value)}</div></div>
+        <div className="stat-card"><div className="stat-label">TOTAL VALUE</div><div className="stat-value" style={{color:'#16a34a'}}>{formatCurrency(stats.total_value)}</div></div>
       </div>
 
-      <div className="card">
-        <div className="card-body">
-          <div className="table-toolbar">
-            <div className="search-box">
-              <Search size={15} className="search-icon"/>
-              <input placeholder="Search by party name, contact..." value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }} />
-            </div>
-            <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={openModal}><Plus size={16}/> New Print Job</button>
-            <select className="filter-select" value={typeFilter} onChange={e=>{setTypeFilter(e.target.value);setPage(1);}}>
-              <option value="">All Types</option>
-              {JOB_TYPES.map(t=><option key={t}>{t}</option>)}
-            </select>
-          </div>
-
-          {loading ? <div className="table-loading">Loading…</div> : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr>
-                  <th>PARTY NAME</th><th>CONTACT</th><th>TYPE</th>
-                  <th>DATE</th><th>ITEMS</th><th>SUBTOTAL</th><th>REMARK</th><th></th>
-                </tr></thead>
-                <tbody>
-                  {rows.length === 0 && <tr><td colSpan={8} className="table-empty"><Printer size={32}/><p>No print jobs found</p></td></tr>}
-                  {rows.map(r => (
-                    <tr key={r.id}>
-                      <td><strong>{r.party_name}</strong></td>
-                      <td>{r.contact||'-'}</td>
-                      <td><span className="badge badge-blue">{r.job_type||'Photos'}</span></td>
-                      <td>{fmt(r.inquiry_date)}</td>
-                      <td><span className="badge badge-gray">{r.item_count} item(s)</span></td>
-                      <td>{cur(r.subtotal)}</td>
-                      <td>{r.remark||'-'}</td>
-                      <td><button className="btn-danger-soft" onClick={()=>del(r.id)}><Trash2 size={14}/></button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {total > 25 && (
-            <div className="pagination">
-              <button disabled={page===1} onClick={() => setPage(p=>p-1)}>Prev</button>
-              <span>Page {page} of {Math.ceil(total/25)}</span>
-              <button disabled={page>=Math.ceil(total/25)} onClick={() => setPage(p=>p+1)}>Next</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        id="exposing"
+        columns={COLUMNS}
+        data={rows}
+        loading={loading}
+        defaultSort={[{ id: 'inquiry_date', desc: true }]}
+        searchPlaceholder="Search party name, contact, remark…"
+        emptyText="No print jobs found"
+        actionsWidth={56}
+        rowActions={r => (
+          <button type="button" className="dg-act del" title="Delete" onClick={() => del(r.id)}><Trash2 size={15} /></button>
+        )}
+        toolbar={<>
+          <select className="filter-select" value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}>
+            <option value="">All Types</option>
+            {JOB_TYPES.map(t=><option key={t}>{t}</option>)}
+          </select>
+          <button type="button" className="btn btn-primary" onClick={openModal}><Plus size={16}/> New Print Job</button>
+        </>}
+      />
 
       {/* Modal */}
       {modal && (

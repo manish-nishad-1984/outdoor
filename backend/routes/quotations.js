@@ -252,16 +252,23 @@ router.get('/client-info', auth, async (req, res) => {
   const name = (req.query.client_name || '').trim();
   if (!name) return res.json(null);
   try {
-    const groupId = await getGroupId(pool, CLIENT_GROUP);
+    // One round trip instead of four (group lookup + account + opening + billed): same rules as
+    // getGroupId() + computePreviousPending(), folded into a single query for the remote DB.
+    const excludeId = req.query.exclude_id || 0;
     const acc = await pool.query(
-      `SELECT id, permanent_address, mobile_no, email, credit_limit, opening_balance, credit_debit
-       FROM accounts WHERE UPPER(account_name)=UPPER($1) AND agent_id=$2 AND delete_flag=false`,
-      [name, groupId]);
+      `SELECT a.id, a.permanent_address, a.mobile_no, a.email, a.credit_limit, a.opening_balance, a.credit_debit,
+              (SELECT COALESCE(SUM(q.grand_total),0) FROM quotations q
+                WHERE q.client_id=a.id AND q.delete_flag=false AND q.id<>$2) AS billed
+         FROM accounts a
+         JOIN account_groups g ON g.id=a.agent_id AND UPPER(g.group_name)=UPPER($3) AND g.delete_flag=false
+        WHERE UPPER(a.account_name)=UPPER($1) AND a.delete_flag=false
+        ORDER BY g.id LIMIT 1`,
+      [name, excludeId, CLIENT_GROUP]);
     if (!acc.rows.length) return res.json(null);
     const a = acc.rows[0];
 
-    const excludeId = req.query.exclude_id || 0;
-    const previousPending = await computePreviousPending(pool, a.id, excludeId);
+    const openingDebit = a.credit_debit === 'Dr' ? Number(a.opening_balance || 0) : 0;
+    const previousPending = round2(Number(a.billed) + openingDebit);
     const overLimit = Number(a.credit_limit || 0) > 0 && previousPending > Number(a.credit_limit);
 
     res.json({
@@ -280,10 +287,13 @@ router.get('/client-info', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   await init;
   try {
-    const q = await pool.query('SELECT * FROM quotations WHERE id=$1 AND delete_flag=false', [req.params.id]);
+    // Run in parallel — the DB is remote, so three sequential round trips tripled the load time.
+    const [q, items, deliverables] = await Promise.all([
+      pool.query('SELECT * FROM quotations WHERE id=$1 AND delete_flag=false', [req.params.id]),
+      pool.query('SELECT * FROM quotation_items WHERE quotation_id=$1 ORDER BY id', [req.params.id]),
+      pool.query('SELECT * FROM quotation_deliverable_items WHERE quotation_id=$1 ORDER BY id', [req.params.id]),
+    ]);
     if (!q.rows.length) return res.status(404).json({ error: 'Not found' });
-    const items = await pool.query('SELECT * FROM quotation_items WHERE quotation_id=$1 ORDER BY id', [req.params.id]);
-    const deliverables = await pool.query('SELECT * FROM quotation_deliverable_items WHERE quotation_id=$1 ORDER BY id', [req.params.id]);
     res.json({ ...q.rows[0], items: items.rows, deliverables: deliverables.rows });
   } catch (err) { res.status(500).json({ error: 'Failed to load quotation' }); console.error('quotation get error:', err.message); }
 });

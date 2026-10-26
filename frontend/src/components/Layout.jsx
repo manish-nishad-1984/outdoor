@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, NavLink } from 'react-router-dom';
-import { Sun, Moon, Monitor, Search, ChevronDown, User, LogOut } from 'lucide-react';
+import { Sun, Moon, Monitor, Search, ChevronDown, User, LogOut, Sparkles } from 'lucide-react';
 import Sidebar, { NAV } from './Sidebar';
+import LayoutSF from './sf/LayoutSF';
+import { readShellPref } from './sf/shellPref';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,9 +13,9 @@ const THEME_LABEL = { light: 'Light', dark: 'Dark', system: 'System' };
 const titles = {
   '/': 'Dashboard',
   '/outdoor-orders': 'Outdoor Orders',
-  '/studio-orders': 'Studio Orders',
   '/quotations': 'Quotations',
   '/bookings': 'Bookings',
+  '/calendar': 'Shoot Calendar',
   '/sales': 'Sales / Invoices',
   '/purchases': 'Purchases',
   '/receipts': 'Receipts',
@@ -159,6 +161,21 @@ export default function Layout() {
   const group = GROUP_BY_PATH[base];
   const { preference, cycleTheme } = useTheme();
   const ThemeIcon = THEME_ICON[preference];
+  const navigate = useNavigate();
+  const themeTitle = `Theme: ${THEME_LABEL[preference]} (click to change)`;
+
+  // Salesforce-style shell preview — opt in with ?ui=new, back with ?ui=classic.
+  if (readShellPref(location.search) === 'new') {
+    return (
+      <LayoutSF
+        search={<ModuleSearch />}
+        profile={<ProfileMenu />}
+        themeIcon={ThemeIcon}
+        themeTitle={themeTitle}
+        onTheme={cycleTheme}
+      />
+    );
+  }
 
   return (
     <div className="layout">
@@ -174,8 +191,16 @@ export default function Layout() {
             <button
               type="button"
               className="theme-toggle"
+              onClick={() => navigate(location.pathname + '?ui=new')}
+              title="Try the new look (preview)"
+            >
+              <Sparkles size={16} />
+            </button>
+            <button
+              type="button"
+              className="theme-toggle"
               onClick={cycleTheme}
-              title={`Theme: ${THEME_LABEL[preference]} (click to change)`}
+              title={themeTitle}
             >
               <ThemeIcon size={16} />
             </button>

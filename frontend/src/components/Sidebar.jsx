@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  LayoutDashboard, Camera, Building2, FileText, CalendarCheck,
+  LayoutDashboard, Camera, FileText, CalendarCheck, CalendarDays,
   ShoppingCart, Package, Receipt, CreditCard, BookOpen,
   Palette, Printer, Truck, Users, Clock, Wallet, UserPlus, ShieldCheck,
   BarChart2, Settings, LogOut, ChevronDown, ChevronRight, Layers, ListChecks, MessageCircle, Percent
@@ -11,7 +11,7 @@ import {
 // Group order/labels follow the legacy MainForm menu bar
 // (Master Setup, Outdoor, Transaction, Xpozing, Utility, Report) rather than a
 // re-invented IA — see legacy/docs/03-MIGRATION-MAP.md. Pages with no legacy menu
-// slot at all (Studio Orders, Bookings, Sales, HR, Design Jobs, Hire Orders) are
+// slot at all (Bookings, Sales, HR, Design Jobs, Hire Orders) are
 // folded into whichever legacy section is the closest conceptual fit.
 export const NAV = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard, exact: true },
@@ -30,8 +30,8 @@ export const NAV = [
     children: [
       { to: '/quotations',       label: 'Quotation',              icon: FileText },
       { to: '/outdoor-orders',   label: 'Order / Bill',           icon: Camera },
-      { to: '/studio-orders',    label: 'Studio Orders',          icon: Building2 },
       { to: '/bookings',         label: 'Bookings',               icon: CalendarCheck },
+      { to: '/calendar',         label: 'Calendar',               icon: CalendarDays },
       { to: '/outdoor-payments', label: 'Outdoor Party Payment',  icon: CreditCard },
       { to: '/receipts',         label: 'Receipt',                icon: Receipt },
     ]
