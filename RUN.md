@@ -1,5 +1,7 @@
 # Run & Build — Outdoor Studio
 
+> New PC? Start with [docs/SETUP-NEW-PC.md](docs/SETUP-NEW-PC.md) (secret files, ports, Claude memory).
+
 Node **v24.15.0**, npm **11.12.1** (any Node ≥ 18 works).
 
 | Part | Stack | Folder |
@@ -14,7 +16,7 @@ The database is **remote** (`PG8001.site4now.net:6432`) — nothing to install l
 ## 1. First-time setup
 
 ```powershell
-cd "E:\DO_NOT_REMOVE\Dhaval Kapadiya\OUTDOOR DEMO\OUTDOOR DEMO\app"
+cd "<repo>"
 
 # backend deps
 cd backend
@@ -39,7 +41,7 @@ Then fill in the real values:
 ```ini
 PORT=3000
 NODE_ENV=production
-JWT_SECRET=outdoorstudio_secret_2026
+JWT_SECRET=<long random string>
 DB_HOST=PG8001.site4now.net
 DB_PORT=6432
 DB_NAME=db_9a7009_outdoor
@@ -59,7 +61,7 @@ DB_PASS=<db password>
 **Terminal 1 — backend**
 
 ```powershell
-cd "E:\DO_NOT_REMOVE\Dhaval Kapadiya\OUTDOOR DEMO\OUTDOOR DEMO\app\backend"
+cd "<repo>\backend"
 $env:PORT=5000; $env:NODE_ENV="development"; npm run dev     # nodemon, auto-restart
 # or without auto-restart:
 $env:PORT=5000; $env:NODE_ENV="development"; npm start
@@ -75,7 +77,7 @@ PostgreSQL connected
 **Terminal 2 — frontend**
 
 ```powershell
-cd "E:\DO_NOT_REMOVE\Dhaval Kapadiya\OUTDOOR DEMO\OUTDOOR DEMO\app\frontend"
+cd "<repo>\frontend"
 npm run dev
 ```
 
@@ -99,15 +101,15 @@ curl.exe -s http://localhost:5000/api/health
 ## 3. Build for production
 
 ```powershell
-cd "E:\DO_NOT_REMOVE\Dhaval Kapadiya\OUTDOOR DEMO\OUTDOOR DEMO\app\frontend"
+cd "<repo>\frontend"
 npm run build          # → frontend/dist/
 ```
 
 Copy the build into the backend's static folder:
 
 ```powershell
-$src = "E:\DO_NOT_REMOVE\Dhaval Kapadiya\OUTDOOR DEMO\OUTDOOR DEMO\app\frontend\dist"
-$dst = "E:\DO_NOT_REMOVE\Dhaval Kapadiya\OUTDOOR DEMO\OUTDOOR DEMO\app\backend\public"
+$src = "<repo>\frontend\dist"
+$dst = "<repo>\backend\public"
 if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
 Copy-Item $src $dst -Recurse
 ```
@@ -118,7 +120,7 @@ With `NODE_ENV=production`, [server.js:36-41](backend/server.js#L36-L41) serves 
 and falls back to `index.html` for client-side routes — one process, no Vite.
 
 ```powershell
-cd "E:\DO_NOT_REMOVE\Dhaval Kapadiya\OUTDOOR DEMO\OUTDOOR DEMO\app\backend"
+cd "<repo>\backend"
 npm start              # uses PORT=3000 from .env
 ```
 
@@ -129,7 +131,7 @@ Open <http://localhost:3000>.
 ## One-shot: build + serve
 
 ```powershell
-$app = "E:\DO_NOT_REMOVE\Dhaval Kapadiya\OUTDOOR DEMO\OUTDOOR DEMO\app"
+$app = "<repo>"
 Set-Location "$app\frontend"; npm run build
 $dst = "$app\backend\public"
 if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
